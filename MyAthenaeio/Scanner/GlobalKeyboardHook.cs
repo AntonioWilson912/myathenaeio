@@ -25,7 +25,18 @@ namespace MyAthenaeio.Scanner
             if (_hookId != IntPtr.Zero)
                 return; // Already hooked
 
-            _hookId = SetHook(_proc);
+            try
+            {
+                _hookId = SetHook(_proc);
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Failed to set up keyboard hook: {ex.Message}\n\n" +
+                    "Background scanning will not work.",
+                    "Hook Error",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+            }
         }
 
         public void Unhook()
@@ -42,7 +53,7 @@ namespace MyAthenaeio.Scanner
             using (Process curProcess = Process.GetCurrentProcess())
             using (ProcessModule curModule = curProcess.MainModule)
             {
-                return SetWindowsHookEx(WH_KEYBOARD_LL, proc, GetModuleHandle(curModule.ModuleName), 0);
+                return SetWindowsHookEx(WH_KEYBOARD_LL, proc, IntPtr.Zero, 0);
             }
         }
 
@@ -65,19 +76,16 @@ namespace MyAthenaeio.Scanner
 
         #region Native Methods
 
-        [DllImport("user32.dll")]
-        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc callback, IntPtr hInstance, uint threadId);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr UnhookWindowsHookEx(IntPtr hInstance);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr CallNextHookEx(IntPtr idHook, int nCode, IntPtr wParam, IntPtr lParam);
-
-        [DllImport("user32.dll")]
-        private static extern IntPtr GetModuleHandle(string lpModuleName);
-
         private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr UnhookWindowsHookEx(IntPtr hhk);
+
+        [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        private static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
 
         #endregion
     }

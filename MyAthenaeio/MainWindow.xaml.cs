@@ -91,7 +91,7 @@ namespace MyAthenaeio
                 {
                     Timestamp = DateTime.Now,
                     Barcode = ISBNValidator.FormatISBN(barcode),
-                    Source = sender == this ? "Manual" : (IsActive ? "Scanner": "Background")
+                    Source = sender == this ? "Manual" : (IsActive ? "Scanner" : "Background")
                 });
 
                 // Update UI
@@ -118,14 +118,27 @@ namespace MyAthenaeio
         {
             if (WindowState == WindowState.Minimized)
             {
+                // User wants background scanning
                 if (BackgroundScanningCheckbox.IsChecked == true)
                 {
                     _scannerManager.SetMode(ScannerMode.BackgroundService);
-                    StatusText.Foreground = Brushes.Black;
-                    StatusText.Text = "📚 Scanner active in background";
-                    _trayIconManager.ShowNotification(
-                        "myAthenaeio",
-                        "Scanner is active in background");
+
+                    // Check if user actually approved it (might have said no to dialog)
+                    if (_scannerManager.BackgroundModeEnabled)
+                    {
+                        StatusText.Foreground = Brushes.Black;
+                        StatusText.Text = "📚 Scanner active in background";
+                        _trayIconManager.ShowNotification(
+                            "myAthenaeio",
+                            "Scanner is active in background");
+                    }
+                    else
+                    {
+                        // User declined the permission - uncheck the box
+                        BackgroundScanningCheckbox.IsChecked = false;
+                        StatusText.Foreground = Brushes.Black;
+                        StatusText.Text = "Scanner disabled (minimized)";
+                    }
                 }
                 else
                 {
@@ -136,6 +149,7 @@ namespace MyAthenaeio
             }
             else
             {
+                // Window is normal or maximized - use focused mode
                 _scannerManager.SetMode(ScannerMode.FocusedFieldOnly);
                 ScannerInputField.Focus();
                 StatusText.Foreground = Brushes.Black;
@@ -157,9 +171,11 @@ namespace MyAthenaeio
 
         private void Window_Deactivated(object sender, EventArgs e)
         {
-            if (WindowState != WindowState.Minimized)
+            // Only handle background mode if minimized
+            // Don't trigger when just clicking away from the window
+            if (WindowState == WindowState.Minimized)
             {
-                if (BackgroundScanningCheckbox.IsChecked == true)
+                if (BackgroundScanningCheckbox.IsChecked == true && _scannerManager.BackgroundModeEnabled)
                 {
                     _scannerManager.SetMode(ScannerMode.BackgroundService);
                 }
@@ -181,31 +197,36 @@ namespace MyAthenaeio
         {
             if (_scannerManager == null) return;
 
-            if (BackgroundScanningCheckbox.IsChecked == true)
+            // Only do something if the window is currently minimized or inactive
+            if (WindowState == WindowState.Minimized)
             {
-                // Will trigger permission dialog on first enable
-                if (WindowState == WindowState.Minimized || !IsActive)
+                if (BackgroundScanningCheckbox.IsChecked == true)
                 {
                     _scannerManager.SetMode(ScannerMode.BackgroundService);
+
+                    // If user declined permission, uncheck
+                    if (!_scannerManager.BackgroundModeEnabled)
+                    {
+                        BackgroundScanningCheckbox.IsChecked = false;
+                    }
                 }
-            }
-            else
-            {
-                if (WindowState == WindowState.Minimized || !IsActive)
+                else
                 {
                     _scannerManager.SetMode(ScannerMode.Disabled);
                 }
-            }
 
-            UpdateCurrentModeText();
+                UpdateCurrentModeText();
+            }
+            // If window is visible, just update the text - mode will change on minimize
         }
 
         private void UpdateCurrentModeText()
         {
             string modeText = WindowState == WindowState.Minimized
-                ? (BackgroundScanningCheckbox.IsChecked == true ? "Background Service (Active)" : "Disabled (Minimized)")
-                : (IsActive ? "Focused Field Only" :
-                   (BackgroundScanningCheckbox.IsChecked == true ? "Background Service (Active)" : "Disabled"));
+                ? (BackgroundScanningCheckbox.IsChecked == true && _scannerManager.BackgroundModeEnabled
+                    ? "Background Service (Active)"
+                    : "Disabled (Minimized)")
+                : (IsActive ? "Focused Field Only" : "Disabled");
 
             CurrentModeText.Text = modeText;
         }

@@ -7,9 +7,10 @@ namespace MyAthenaeio.Scanner
     internal class ScannerManager
     {
         private ScannerMode _currentMode = ScannerMode.Disabled;
-        private GlobalKeyboardHook _globalHook; // Only if user enables
+        private GlobalKeyboardHook _globalHook;
         private BarcodeScanner _scanner;
         private bool _backgroundModeEnabled = false;
+        private bool _isShowingDialog = false;
 
         public event EventHandler<string> BarcodeScanned;
         public bool BackgroundModeEnabled => _backgroundModeEnabled;
@@ -18,16 +19,17 @@ namespace MyAthenaeio.Scanner
         {
             _scanner = new BarcodeScanner();
             _scanner.BarcodeScanned += (s, barcode) => BarcodeScanned?.Invoke(this, barcode);
-            _globalHook = new GlobalKeyboardHook();
         }
 
         public void SetMode(ScannerMode mode)
         {
+            // Don't change mode if showing permission dialog
+            if (_isShowingDialog)
+                return;
+
             // Clean up previous mode
             if (_currentMode == ScannerMode.BackgroundService && _globalHook != null)
                 _globalHook.Unhook();
-
-            _currentMode = mode;
 
             // Set up new mode
             if (mode == ScannerMode.BackgroundService)
@@ -35,9 +37,15 @@ namespace MyAthenaeio.Scanner
                 if (!_backgroundModeEnabled)
                 {
                     ShowBackgroundModeDialog();
+                    // Don't set _currentMode here - will be set in dialog callback
                     return;
                 }
                 SetupGlobalHook();
+                _currentMode = mode;
+            }
+            else
+            {
+                _currentMode = mode;
             }
         }
 
@@ -50,14 +58,19 @@ namespace MyAthenaeio.Scanner
 
         private void ShowBackgroundModeDialog()
         {
+            if (_isShowingDialog)
+                return;
+
+            _isShowingDialog = true;
+
             var result = MessageBox.Show(
                 "Background scanning mode requires monitoring keyboard input " +
                 "when the app is minimized.\n\n" +
                 "This allows you to scan books from your bookshelf while away from your computer.\n\n" +
                 "The app ONLY processes:\n" +
-                "- ISBN barcode patterns (10-13 digits)\n" +
+                "• ISBN barcode patterns (10-13 digits)\n" +
                 "  typed at scanner speeds (100+ chars/second)\n" +
-                "- Regular typing and passwords are ignored\n\n" +
+                "• Regular typing and passwords are ignored\n\n" +
                 "Enable background scanning?",
                 "Background Scanning Permission",
                 MessageBoxButton.YesNo,
@@ -67,11 +80,15 @@ namespace MyAthenaeio.Scanner
             {
                 _backgroundModeEnabled = true;
                 SetupGlobalHook();
+                _currentMode = ScannerMode.BackgroundService;
             }
             else
             {
+                _backgroundModeEnabled = false;
                 _currentMode = ScannerMode.Disabled;
             }
+
+            _isShowingDialog = false;
         }
 
         private void SetupGlobalHook()
@@ -84,7 +101,6 @@ namespace MyAthenaeio.Scanner
                     _scanner.OnKeyPress(key);
                 };
             }
-
             _globalHook.Hook();
         }
 
