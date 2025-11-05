@@ -1,15 +1,11 @@
-﻿using MyAthenaeio.Scanner;
-using System.Collections.ObjectModel;
-using System.Text;
+﻿using System.Collections.ObjectModel;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using MyAthenaeio.Scanner;
+using MyAthenaeio.Services;
+using MyAthenaeio.Utils;
+using Brushes = System.Windows.Media.Brushes;
 
 namespace MyAthenaeio
 {
@@ -19,6 +15,7 @@ namespace MyAthenaeio
     public partial class MainWindow : Window
     {
         private ScannerManager _scannerManager;
+        private TrayIconManager _trayIconManager;
         private ObservableCollection<ScanLogEntry> _scanLog;
         private int _scanCount = 0;
 
@@ -32,6 +29,9 @@ namespace MyAthenaeio
             _scannerManager = new ScannerManager();
             _scannerManager.BarcodeScanned += OnBarcodeScanned;
 
+            // Initialize system tray
+            _trayIconManager = new TrayIconManager(_scannerManager);
+
             // Set initial mode when window loads
             Loaded += (s, e) =>
             {
@@ -39,12 +39,44 @@ namespace MyAthenaeio
                 ScannerInputField.Focus();
                 UpdateCurrentModeText();
             };
+
+            // Handle minimize to tray behavior
+            StateChanged += Window_StateChanged;
         }
 
-        private void ScannerInputField_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void ScannerInputField_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
         {
-            // Extract the key and pass to scanner manager
-            _scannerManager.ProcessKey(e.Key);
+            // Handle manual input
+            if (e.Key == Key.Enter || e.Key == Key.Return)
+            {
+                string text = ScannerInputField.Text.Trim();
+                if (!string.IsNullOrEmpty(text))
+                {
+                    ProcessManualInput(text);
+                    e.Handled = true;
+                }
+            }
+            else
+            {
+                // Pass key to scanner manager
+                _scannerManager.ProcessKey(e.Key);
+            }
+        }
+
+        private void ProcessManualInput(string input)
+        {
+            // Validate ISBN
+            if (ISBNValidator.IsValidISBNFormat(input))
+            {
+                // Clean and process
+                string cleaned = ISBNValidator.CleanISBN(input);
+                OnBarcodeScanned(this, cleaned);
+            }
+            else
+            {
+                StatusText.Foreground = Brushes.Red;
+                StatusText.Text = $"❌ Invalid ISBN format: {input}";
+            }
         }
 
 
@@ -58,20 +90,27 @@ namespace MyAthenaeio
                 _scanLog.Insert(0, new ScanLogEntry
                 {
                     Timestamp = DateTime.Now,
-                    Barcode = barcode,
-                    Source = IsActive ? "Focused" : "Background"
+                    Barcode = ISBNValidator.FormatISBN(barcode),
+                    Source = sender == this ? "Manual" : (IsActive ? "Scanner": "Background")
                 });
 
                 // Update UI
-                StatusText.Text = $"Scanned: {barcode}";
+                StatusText.Foreground = Brushes.Black;
+                StatusText.Text = $"Scanned: {ISBNValidator.FormatISBN(barcode)}";
                 ScanCountText.Text = _scanCount.ToString();
+
+                // Update tray icon count
+                _trayIconManager.UpdateTodayCount(_scanCount);
 
                 // Clear input field
                 ScannerInputField.Clear();
 
                 // Show notification if app is not focused
-                if (!IsActive)
-                    ShowBalloonNotification("Book Scanned", $"ISBN: {barcode}");
+                if (!IsActive && sender != this)
+                    _trayIconManager.ShowNotification(
+                        "Book Scanned",
+                        $"ISBN: {ISBNValidator.FormatISBN(barcode)}"
+                    );
             });
         }
 
@@ -82,11 +121,16 @@ namespace MyAthenaeio
                 if (BackgroundScanningCheckbox.IsChecked == true)
                 {
                     _scannerManager.SetMode(ScannerMode.BackgroundService);
+                    StatusText.Foreground = Brushes.Black;
                     StatusText.Text = "📚 Scanner active in background";
+                    _trayIconManager.ShowNotification(
+                        "myAthenaeio",
+                        "Scanner is active in background");
                 }
                 else
                 {
                     _scannerManager.SetMode(ScannerMode.Disabled);
+                    StatusText.Foreground = Brushes.Black;
                     StatusText.Text = "Scanner disabled (minimized)";
                 }
             }
@@ -94,6 +138,7 @@ namespace MyAthenaeio
             {
                 _scannerManager.SetMode(ScannerMode.FocusedFieldOnly);
                 ScannerInputField.Focus();
+                StatusText.Foreground = Brushes.Black;
                 StatusText.Text = "Ready to scan";
             }
 
@@ -128,6 +173,7 @@ namespace MyAthenaeio
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            _trayIconManager?.Dispose();
             _scannerManager?.Dispose();
         }
 
@@ -162,13 +208,6 @@ namespace MyAthenaeio
                    (BackgroundScanningCheckbox.IsChecked == true ? "Background Service (Active)" : "Disabled"));
 
             CurrentModeText.Text = modeText;
-        }
-
-        private void ShowBalloonNotification(string title, string message)
-        {
-            // TODO: Implement system tray notifications later
-            // For now, just update status bar
-            StatusText.Text = $"{title}: {message}";
         }
     }
 

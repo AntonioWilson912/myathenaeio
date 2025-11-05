@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
+using MyAthenaeio.Utils;
 
 namespace MyAthenaeio.Scanner
 {
@@ -17,8 +18,6 @@ namespace MyAthenaeio.Scanner
         private const int MAX_SCAN_DURATION_MS = 300; // Total scan duration
         private const int MIN_BARCODE_LENGTH = 8; // Minimum valid barcode
         private const int MAX_BARCODE_LENGTH = 18; // Maximum valid barcode
-        private const int MIN_ISBN_LENGTH = 10; // Minimum valid ISBN
-        private const int MAX_ISBN_LENGTH = 13; // Maximum valid ISBN
         private const int MIN_KEYS_PER_SECOND = 50; // Scanner speed
 
         public event EventHandler<string> BarcodeScanned;
@@ -78,23 +77,10 @@ namespace MyAthenaeio.Scanner
                 return false;
 
             // Content validation
-            if (!IsValidISBNFormat(barcode))
+            if (!ISBNValidator.IsValidISBNFormat(barcode))
                 return false;
 
             return true;
-        }
-
-        private static bool IsValidISBNFormat(string barcode)
-        {
-            // Remove prefixes/formatting
-            string cleaned = barcode.Replace("-", "").Replace(" ", "");
-
-            // ISBN-10 or ISBN-13 should be all digits
-            if (!cleaned.All(char.IsDigit))
-                return false;
-
-            // Valid ISBN lengths
-            return cleaned.Length == MIN_ISBN_LENGTH || cleaned.Length == MAX_ISBN_LENGTH;
         }
 
         private static string GetCharFromKey(Key key)

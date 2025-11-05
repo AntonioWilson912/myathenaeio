@@ -77,7 +77,7 @@
                                                 </Grid.ColumnDefinitions>
 
                                                 <TextBlock Grid.Column="0"
-                                                    Text="{Binding Timestamp, StringFormat='{}{0:HH:MM:ss}'}"
+                                                    Text="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss}'}"
                                                     VerticalAlignment="Center"
                                                     Foreground="Gray" />
 
