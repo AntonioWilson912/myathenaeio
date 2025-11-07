@@ -90,6 +90,16 @@
                                                      Margin="10,0" />
 
                                                 <TextBlock Grid.Column="2"
+                                                     Text="{Binding Title}"
+                                                     VerticalAlignment="Center"
+                                                     Foreground="Gray" />
+
+                                                <Image Grid.Column="3"
+                                                       Source="{Binding Cover}"
+                                                       VerticalAlignment="Center"
+                                                       />
+
+                                                <TextBlock Grid.Column="4"
                                                      Text="{Binding Source}"
                                                      VerticalAlignment="Center"
                                                      HorizontalAlignment="Right"

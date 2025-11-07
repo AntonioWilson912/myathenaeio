@@ -2,10 +2,13 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using MyAthenaeio.Models;
 using MyAthenaeio.Scanner;
 using MyAthenaeio.Services;
 using MyAthenaeio.Utils;
 using Brushes = System.Windows.Media.Brushes;
+using MessageBox = System.Windows.MessageBox;
 
 namespace MyAthenaeio
 {
@@ -82,15 +85,38 @@ namespace MyAthenaeio
 
         private void OnBarcodeScanned(object sender, string barcode)
         {
-            Dispatcher.Invoke(() =>
+            Dispatcher.Invoke(async () =>
             {
                 _scanCount++;
+
+                // Fetch ISBN details
+                Result<Book> bookResult = await BookAPIService.FetchBookByISBN(barcode);
+                if (!bookResult.IsSuccess)
+                {
+                    //Only show error if window is active or this is a manual scan
+                    if (IsActive || sender == this)
+                    {
+                        MessageBox.Show(bookResult.Error, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                    else
+                    {
+                        // Show tray notification for background errors
+                        _trayIconManager.ShowNotification(
+                            "Scan Failed",
+                            $"Failed to fetch book: {barcode}");
+                    }
+                    return;
+                }
+
+                Book book = bookResult.Value!;
 
                 // Add to log
                 _scanLog.Insert(0, new ScanLogEntry
                 {
                     Timestamp = DateTime.Now,
                     Barcode = ISBNValidator.FormatISBN(barcode),
+                    Title = book.Title,
+                    Cover = book.Cover!,
                     Source = sender == this ? "Manual" : (IsActive ? "Scanner" : "Background")
                 });
 
@@ -235,7 +261,9 @@ namespace MyAthenaeio
     public class ScanLogEntry
     {
         public DateTime Timestamp { get; set; }
-        public string Barcode { get; set; } = String.Empty;
+        public string Barcode { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public BitmapImage Cover { get; set; } = default!;
         public string Source { get; set; } = string.Empty;
     }
 }
