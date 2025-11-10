@@ -7,11 +7,12 @@ using System.Windows.Media.Imaging;
 
 namespace MyAthenaeio.Models
 {
-    internal class Book
+    public class Book
     {
         public string Title { get; set; } = string.Empty;
         public string? Subtitle { get; set; }
-        public List<string> Authors { get; set; } = default!;
+        public string? Description { get; set; }
+        public List<Author> Authors { get; set; } = default!;
         public DateTime PublishDate { get; set; }
         public string? Isbn10 { get; set; }
         public string? Isbn13 { get; set; }
@@ -19,6 +20,6 @@ namespace MyAthenaeio.Models
         public BitmapImage? Cover { get; set; }
 
         // For a future version of the app
-        public string Location { get; set; } = string.Empty;
+        // Copies available for lending
     }
 }
