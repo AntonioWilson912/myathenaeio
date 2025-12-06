@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using MyAthenaeio.Data;
 using MyAthenaeio.Models;
 using MyAthenaeio.Services;
 using Brushes = System.Windows.Media.Brushes;
@@ -10,9 +11,9 @@ namespace MyAthenaeio
     /// </summary>
     public partial class BookDetailWindow : Window
     {
-        private Book _book;
+        private BookApiResponse _book;
 
-        public BookDetailWindow(Book book)
+        public BookDetailWindow(BookApiResponse book)
         {
             InitializeComponent();
             _book = book;
