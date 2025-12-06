@@ -2,16 +2,14 @@
 
 namespace MyAthenaeio.Models
 {
-    public class Author
+    public class Collection
     {
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(200)]
+        [MaxLength(50)]
         public string Name { get; set; } = string.Empty;
-        public string? Bio { get; set; }
-
-
+        public string? Notes { get; set; }
         public ICollection<Book> Books { get; set; } = [];
     }
 }

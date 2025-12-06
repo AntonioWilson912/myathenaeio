@@ -4,6 +4,7 @@ using Path = System.IO.Path;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using MyAthenaeio.Data;
 using MyAthenaeio.Models;
 using MyAthenaeio.Scanner;
 using MyAthenaeio.Services;
@@ -117,7 +118,7 @@ namespace MyAthenaeio
                 _scanCount++;
 
                 // Fetch ISBN details
-                Result<Book> bookResult = await BookAPIService.FetchBookByISBN(barcode);
+                Result<BookApiResponse> bookResult = await BookAPIService.FetchBookByISBN(barcode);
                 if (!bookResult.IsSuccess)
                 {
                     //Only show error if window is active or this is a manual scan
@@ -135,7 +136,7 @@ namespace MyAthenaeio
                     return;
                 }
 
-                Book book = bookResult.Value!;
+                BookApiResponse book = bookResult.Value!;
 
                 // Add to log
                 _scanLog.Insert(0, new ScanLogEntry
@@ -388,7 +389,7 @@ namespace MyAthenaeio
             {
                 // Fetch full book details
                 string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
-                Result<Book> bookResult = await BookAPIService.FetchFullBookByISBN(cleanedBarcode);
+                Result<BookApiResponse> bookResult = await BookAPIService.FetchFullBookByISBN(cleanedBarcode);
 
                 if (!bookResult.IsSuccess)
                 {

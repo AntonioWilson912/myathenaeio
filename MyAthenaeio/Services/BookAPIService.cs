@@ -6,7 +6,7 @@ using MyAthenaeio.Models;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using Brushes = System.Windows.Media.Brushes;
-using System.Runtime.InteropServices;
+using MyAthenaeio.Data;
 
 
 namespace MyAthenaeio.Services
@@ -22,7 +22,7 @@ namespace MyAthenaeio.Services
 
         private static Dictionary<string, BitmapImage> _coverCache = new();
 
-        public static async Task<Result<Book>> FetchBookByISBN(string isbn)
+        public static async Task<Result<BookApiResponse>> FetchBookByISBN(string isbn)
         {
             try
             {
@@ -31,7 +31,7 @@ namespace MyAthenaeio.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return Result<Book>.Failure($"API returned {response.StatusCode}");
+                    return Result<BookApiResponse>.Failure($"API returned {response.StatusCode}");
                 }
 
                 // Process the JSON
@@ -43,7 +43,7 @@ namespace MyAthenaeio.Services
                 string? title = parsedJson["title"]?.ToString();
                 if (string.IsNullOrEmpty(title))
                 {
-                    return Result<Book>.Failure("Book data missing title");
+                    return Result<BookApiResponse>.Failure("Book data missing title");
                 }
 
                 // Optional fields
@@ -58,7 +58,7 @@ namespace MyAthenaeio.Services
                     cover = coverResult.Value;
                 }
 
-                Book book = new()
+                BookApiResponse book = new()
                 {
                     Title = title,
                     Isbn10 = isbn10,
@@ -66,24 +66,24 @@ namespace MyAthenaeio.Services
                     Cover = cover ?? CreatePlaceholderImage()
                 };
 
-                return Result<Book>.Success(book);
+                return Result<BookApiResponse>.Success(book);
 
             }
             catch (HttpRequestException ex)
             {
-                return Result<Book>.Failure($"Network error: {ex.Message}");
+                return Result<BookApiResponse>.Failure($"Network error: {ex.Message}");
             }
             catch (JsonException ex)
             {
-                return Result<Book>.Failure($"Invalid JSON: {ex.Message}");
+                return Result<BookApiResponse>.Failure($"Invalid JSON: {ex.Message}");
             }
             catch (Exception ex)
             {
-                return Result<Book>.Failure($"Unexpected error: {ex.Message}");
+                return Result<BookApiResponse>.Failure($"Unexpected error: {ex.Message}");
             }
         }
 
-        public static async Task<Result<Book>> FetchFullBookByISBN(string isbn)
+        public static async Task<Result<BookApiResponse>> FetchFullBookByISBN(string isbn)
         {
             try
             {
@@ -92,7 +92,7 @@ namespace MyAthenaeio.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return Result<Book>.Failure($"API returned {response.StatusCode}");
+                    return Result<BookApiResponse>.Failure($"API returned {response.StatusCode}");
                 }
 
                 // Process the JSON
@@ -104,13 +104,13 @@ namespace MyAthenaeio.Services
                 string? title = parsedJson["title"]?.ToString();
                 if (string.IsNullOrEmpty(title))
                 {
-                    return Result<Book>.Failure("Book data missing title");
+                    return Result<BookApiResponse>.Failure("Book data missing title");
                 }
 
                 string? key = parsedJson["key"]?.ToString();
                 if (string.IsNullOrEmpty(key))
                 {
-                    return Result<Book>.Failure("Book data missing key");
+                    return Result<BookApiResponse>.Failure("Book data missing key");
                 }
 
                 // Optional fields
@@ -178,7 +178,7 @@ namespace MyAthenaeio.Services
                     coverImage = coverResult.Value;
                 }
 
-                Book book = new()
+                BookApiResponse book = new()
                 {
                     Title = title,
                     Subtitle = subtitle,
@@ -191,20 +191,20 @@ namespace MyAthenaeio.Services
                     Cover = coverImage ?? CreatePlaceholderImage()
                 };
 
-                return Result<Book>.Success(book);
+                return Result<BookApiResponse>.Success(book);
 
             }
             catch (HttpRequestException ex)
             {
-                return Result<Book>.Failure($"Network error: {ex.Message}");
+                return Result<BookApiResponse>.Failure($"Network error: {ex.Message}");
             }
             catch (JsonException ex)
             {
-                return Result<Book>.Failure($"Invalid JSON: {ex.Message}");
+                return Result<BookApiResponse>.Failure($"Invalid JSON: {ex.Message}");
             }
             catch (Exception ex)
             {
-                return Result<Book>.Failure($"Unexpected error: {ex.Message}");
+                return Result<BookApiResponse>.Failure($"Unexpected error: {ex.Message}");
             }
         }
 
