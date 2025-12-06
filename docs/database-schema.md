@@ -48,6 +48,7 @@
 - **Id** (int, PK, auto-increment)
 - **LoanId** (int, FK -> Loans.Id)
 - **RenewalDate** (DateTime)
+- **NewDueDate** (DateTime)
 - **Notes** (string)
 
 ### Genres
