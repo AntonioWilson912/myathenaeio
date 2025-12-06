@@ -50,16 +50,16 @@
 - **RenewalDate** (DateTime)
 - **Notes** (string)
 
-### Categories
+### Genres
 
 - **Id** (int, PK, auto-increment)
 - **Name** (string, unique)
 
-### BookCategories (Junction Table)
+### BookGenres (Junction Table)
 
 - **BookId** (int, FK -> Books.Id)
-- **CategoryId** (int, FK -> Categories.Id)
-- Primary Key: (BookId, CategoryId)
+- **GenreId** (int, FK -> Genre.Id)
+- Primary Key: (BookId, GenreId)
 
 ### Tags
 
