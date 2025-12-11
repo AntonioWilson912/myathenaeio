@@ -1,4 +1,5 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using Microsoft.EntityFrameworkCore.Metadata.Conventions;
+using System.ComponentModel.DataAnnotations;
 
 namespace MyAthenaeio.Models
 {
@@ -21,7 +22,8 @@ namespace MyAthenaeio.Models
         public string? Publisher { get; set; }
         public int? PublicationYear { get; set; }
         public string? Description { get; set; }
-        public DateTime DateAdded { get; set; }
+        public DateTime? DateAdded { get; set; }
+        public int Copies { get; set; }
         public string? Notes { get; set; }
         public string? CoverImageUrl { get; set; }
         public ICollection<Author> Authors { get; set; } = [];

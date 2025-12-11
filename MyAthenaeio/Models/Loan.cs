@@ -7,7 +7,7 @@ namespace MyAthenaeio.Models
         public int Id { get; set; }
         public DateTime CheckoutDate { get; set; }
         public DateTime DueDate { get; set; }
-        public DateTime ReturnDate { get; set; }
+        public DateTime? ReturnDate { get; set; }
         public string? Notes { get; set; }
 
         [Required]
