@@ -71,74 +71,125 @@ namespace MyAthenaeio.Services
 
         #region Books
 
-        public static async Task<Book> AddBookAsync(Book book, List<string> authorNames, List<int>? genreIds = null, List<int>? tagIds = null, List<int>? collectionIds = null)
+        public static async Task<Book> AddBookAsync(Book book, List<AuthorInfo> authorInfos, List<int>? genreIds = null, List<int>? tagIds = null, List<int>? collectionIds = null)
         {
             using var context = new AppDbContext();
 
-            var existingBook = await context.Books
-                .Include(b => b.Authors)
-                .FirstOrDefaultAsync(b => b.ISBN == book.ISBN);
-
-            if (existingBook != null)
-                throw new InvalidOperationException($"Book already exists: {existingBook.Title} (ID: {existingBook.Id})");
-
-            if (book.DateAdded == default)
-                book.DateAdded = DateTime.UtcNow;
-
-            if (book.Copies == 0)
-                book.Copies = 1;
-
-            // Handle authors
-            foreach (var authorName in authorNames)
+            try
             {
-                var author = await context.Authors.FirstOrDefaultAsync(a => a.Name == authorName);
+                System.Diagnostics.Debug.WriteLine($"=== Starting AddBookAsync for: {book.Title} ===");
 
-                if (author == null)
+                // Check for existing book using both ISBN formats
+                var (isbn10, isbn13) = ISBNValidator.GetBothISBNFormats(book.ISBN);
+
+                var isbnsToCheck = new List<string>();
+                if (!string.IsNullOrEmpty(isbn10))
+                    isbnsToCheck.Add(isbn10);
+                if (!string.IsNullOrEmpty(isbn13))
+                    isbnsToCheck.Add(isbn13);
+
+                var existingBook = await context.Books
+                    .FirstOrDefaultAsync(b => isbnsToCheck.Any(searchIsbn => ISBNValidator.CleanISBN(b.ISBN) == searchIsbn));
+
+                if (existingBook != null)
+                    throw new InvalidOperationException($"Book already exists: {existingBook.Title} (ID: {existingBook.Id})");
+
+                if (book.DateAdded == default)
+                    book.DateAdded = DateTime.UtcNow;
+
+                if (book.Copies == 0)
+                    book.Copies = 1;
+
+                // Handle authors with OpenLibrary keys
+                foreach (var authorInfo in authorInfos)
                 {
-                    author = new Author { Name = authorName };
-                    context.Authors.Add(author);
+                    Author? author = null;
+
+                    // First try to find by OpenLibrary key (most reliable)
+                    if (!string.IsNullOrEmpty(authorInfo.OpenLibraryKey))
+                    {
+                        author = await context.Authors
+                            .FirstOrDefaultAsync(a => a.OpenLibraryKey == authorInfo.OpenLibraryKey);
+                    }
+
+                    // If not found by key, try by name (for backwards compatibility)
+                    if (author == null && !string.IsNullOrEmpty(authorInfo.Name))
+                    {
+                        author = await context.Authors
+                            .FirstOrDefaultAsync(a => a.Name == authorInfo.Name && a.OpenLibraryKey == null);
+                    }
+
+                    // Create new author if not found
+                    if (author == null)
+                    {
+                        author = new Author
+                        {
+                            Name = authorInfo.Name,
+                            OpenLibraryKey = authorInfo.OpenLibraryKey,
+                            Bio = authorInfo.Bio
+                        };
+                        context.Authors.Add(author);
+                        System.Diagnostics.Debug.WriteLine($"Creating new author: {author.Name} (Key: {author.OpenLibraryKey})");
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Found existing author: {author.Name} (ID: {author.Id}, Key: {author.OpenLibraryKey})");
+
+                        // Update bio if we have new info and didn't have it before
+                        if (string.IsNullOrEmpty(author.Bio) && !string.IsNullOrEmpty(authorInfo.Bio))
+                        {
+                            author.Bio = authorInfo.Bio;
+                        }
+                    }
+
+                    book.Authors.Add(author);
                 }
 
-                book.Authors.Add(author);
-            }
+                // Handle genres
+                if (genreIds != null && genreIds.Count != 0)
+                {
+                    var genres = await context.Genres
+                        .Where(g => genreIds.Contains(g.Id))
+                        .ToListAsync();
 
-            // Handle genres
-            if (genreIds != null && genreIds.Count != 0)
+                    foreach (var genre in genres)
+                        book.Genres.Add(genre);
+                }
+
+                // Handle tags
+                if (tagIds != null && tagIds.Count != 0)
+                {
+                    var tags = await context.Tags
+                        .Where(t => tagIds.Contains(t.Id))
+                        .ToListAsync();
+
+                    foreach (var tag in tags)
+                        book.Tags.Add(tag);
+                }
+
+                // Handle collections
+                if (collectionIds != null && collectionIds.Count != 0)
+                {
+                    var collections = await context.Collections
+                        .Where(c => collectionIds.Contains(c.Id))
+                        .ToListAsync();
+
+                    foreach (var collection in collections)
+                        book.Collections.Add(collection);
+                }
+
+                context.Books.Add(book);
+                await context.SaveChangesAsync();
+
+                System.Diagnostics.Debug.WriteLine($"Book saved successfully with ID: {book.Id}");
+                return book;
+            }
+            catch (Exception ex)
             {
-                var genres = await context.Genres
-                    .Where(g => genreIds.Contains(g.Id))
-                    .ToListAsync();
-
-                foreach (var genre in genres)
-                    book.Genres.Add(genre);
+                System.Diagnostics.Debug.WriteLine($"ERROR: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"INNER: {ex.InnerException?.Message}");
+                throw;
             }
-
-            // Handle tags
-            if (tagIds != null && tagIds.Count != 0)
-            {
-                var tags = await context.Tags
-                    .Where(t => tagIds.Contains(t.Id))
-                    .ToListAsync();
-
-                foreach (var tag in tags)
-                    book.Tags.Add(tag);
-            }
-
-            // Handle collections
-            if (collectionIds != null && collectionIds.Count != 0)
-            {
-                var collections = await context.Collections
-                    .Where(c => collectionIds.Contains(c.Id))
-                    .ToListAsync();
-
-                foreach (var collection in collections)
-                    book.Collections.Add(collection);
-            }
-
-            context.Books.Add(book);
-            await context.SaveChangesAsync();
-
-            return book;
         }
 
         public static async Task<List<Book>> GetAllBooksAsync()
@@ -239,14 +290,23 @@ namespace MyAthenaeio.Services
             using var context = new AppDbContext();
 
             // Clean ISBN
-            isbn = isbn.Replace("-", "").Replace(" ", "");
+            var (isbn10, isbn13) = ISBNValidator.GetBothISBNFormats(isbn);
 
+            // Build a list of ISBNs to check
+            var isbnsToCheck = new List<string>();
+            if (!string.IsNullOrEmpty(isbn10))
+                isbnsToCheck.Add(isbn10);
+            if (!string.IsNullOrEmpty(isbn13))
+                isbnsToCheck.Add(isbn13);
+
+            // Search for book matching any of the ISBN formats
             return await context.Books
                 .Include(b => b.Authors)
                 .Include(b => b.Genres)
                 .Include(b => b.Tags)
                 .Include(b => b.Collections)
-                .FirstOrDefaultAsync(book => book.ISBN.Replace("-", "").Replace(" ", "") == isbn);
+                .FirstOrDefaultAsync(book => isbnsToCheck.Any(searchIsbn =>
+                    ISBNValidator.CleanISBN(book.ISBN) == searchIsbn));
         }
 
         public static async Task<List<Book>> SearchBooksAsync(string query)

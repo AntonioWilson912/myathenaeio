@@ -17,6 +17,8 @@ using System.ComponentModel;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Cursors = System.Windows.Input.Cursors;
+using System.Diagnostics;
+using Button = System.Windows.Controls.Button;
 
 namespace MyAthenaeio
 {
@@ -138,16 +140,42 @@ namespace MyAthenaeio
 
                 BookApiResponse book = bookResult.Value!;
 
+                // Check if the book already exists in the DB
+                Book? existingBookInDb = null;
+
+                if (!string.IsNullOrEmpty(book.Isbn13))
+                {
+                    existingBookInDb = await LibraryService.GetBookByISBNAsync(book.Isbn13);
+                }
+
+                if (existingBookInDb == null && !string.IsNullOrEmpty(book.Isbn10))
+                {
+                    existingBookInDb = await LibraryService.GetBookByISBNAsync(book.Isbn10);
+                }
+
+                // Fallback: check using the scanned barcode itself
+                if (existingBookInDb == null)
+                {
+                    existingBookInDb = await LibraryService.GetBookByISBNAsync(barcode);
+                }
+
+                bool isInLibrary = existingBookInDb != null;
+                int? bookId = existingBookInDb?.Id;
+
                 // Add to log
-                _scanLog.Insert(0, new ScanLogEntry
+                var newEntry = new ScanLogEntry
                 {
                     Timestamp = DateTime.Now,
                     Barcode = ISBNValidator.FormatISBN(barcode),
                     Title = book.Title,
                     Cover = book.Cover ?? BookAPIService.CreatePlaceholderImage(),
                     Source = sender == this ? "Manual" : (IsActive ? "Scanner" : "Background"),
-                    IsCoverLoaded = true
-                });
+                    IsCoverLoaded = true,
+                    IsInLibrary = isInLibrary,
+                    BookId = bookId
+                };
+
+                _scanLog.Insert(0, newEntry);
 
                 // Update UI
                 StatusText.Foreground = Brushes.Black;
@@ -169,6 +197,118 @@ namespace MyAthenaeio
 
                 SaveData();
             });
+        }
+
+        private async void AddToLibrary_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || button.DataContext is not ScanLogEntry entry)
+                return;
+
+            if (entry.IsInLibrary)
+                return;
+
+            Mouse.OverrideCursor = Cursors.Wait;
+
+            string barcodeToAdd = entry.Barcode;
+
+            try
+            {
+                // Fetch full book details
+                string cleanedBarcode = ISBNValidator.CleanISBN(barcodeToAdd);
+                Result<BookApiResponse> bookResult = await BookAPIService.FetchFullBookByISBN(cleanedBarcode);
+
+                if (!bookResult.IsSuccess)
+                {
+                    MessageBox.Show($"Could not load book details: {bookResult.Error}",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                BookApiResponse bookData = bookResult.Value!;
+
+                // Create Book entity
+                var book = new Book
+                {
+                    ISBN = bookData.Isbn13 ?? bookData.Isbn10 ?? entry.Barcode,
+                    Title = bookData.Title,
+                    Subtitle = bookData.Subtitle,
+                    Description = bookData.Description,
+                    Publisher = bookData.Publisher,
+                    PublicationYear = bookData.PublishDate?.Year,
+                    CoverImageUrl = bookData.CoverImageUrl,
+                    Copies = 1
+                };
+
+                var addedBook = await LibraryService.AddBookAsync(book, bookData.Authors);
+
+                // Update all entries with matching ISBN
+                var (convertedISBN10, convertedISBN13) = ISBNValidator.GetBothISBNFormats(barcodeToAdd);
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    foreach (var scanEntry in _scanLog)
+                    {
+                        var (entryISBN10, entryISBN13) = ISBNValidator.GetBothISBNFormats(scanEntry.Barcode);
+
+                        // Check if any format matches
+                        bool matches = false;
+                        if (!string.IsNullOrEmpty(entryISBN10) && !string.IsNullOrEmpty(convertedISBN10))
+                            matches |= entryISBN10 == convertedISBN10;
+                        if (!string.IsNullOrEmpty(entryISBN13) && !string.IsNullOrEmpty(convertedISBN13))
+                            matches |= entryISBN13 == convertedISBN13;
+
+                        if (matches)
+                        {
+                            scanEntry.IsInLibrary = true;
+                            scanEntry.BookId = addedBook.Id;
+                        }
+                    }
+                });
+
+                StatusText.Foreground = Brushes.Green;
+                StatusText.Text = $"Added {bookData.Title} to Library ✓";
+
+                MessageBox.Show($"'{bookData.Title}' has been added to your library!",
+                    "Success", MessageBoxButton.OK, MessageBoxImage.Information);
+            } catch (InvalidOperationException ex)
+            {
+                string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
+                var existingBook = await LibraryService.GetBookByISBNAsync(cleanedBarcode);
+
+                if (existingBook != null)
+                {
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        foreach (var scanEntry in _scanLog)
+                        {
+                            string cleanedScanBarcode = ISBNValidator.CleanISBN(scanEntry.Barcode);
+                            string cleanedExistingISBN = ISBNValidator.CleanISBN(existingBook.ISBN);
+
+                            if (cleanedScanBarcode == cleanedExistingISBN)
+                            {
+                                scanEntry.IsInLibrary = true;
+                                scanEntry.BookId = existingBook.Id;
+                            }
+                        }
+                    });
+                }
+                else
+                {
+                    entry.IsInLibrary = true;
+                }
+
+                    entry.IsInLibrary = true;
+                MessageBox.Show(ex.Message, "Already in Library",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            } catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to add book: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                button.IsEnabled = true;
+            } finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
 
         private void Window_StateChanged(object sender, EventArgs e)
@@ -362,12 +502,56 @@ namespace MyAthenaeio
                 Dispatcher.InvokeAsync(async () =>
                 {
                     await Task.Delay(100); // Let UI render
+                    await UpdateScanHistoryFromDatabase(); // Check DB status
                     await LoadVisibleCovers();
                 });
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to load data: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private async Task UpdateScanHistoryFromDatabase()
+        {
+            try
+            {
+                // Get all books from database
+                var allBooks = await LibraryService.GetAllBooksAsync();
+
+                // Create a dictionary for fast lookup by cleaned ISBN (both formats)
+                var booksByIsbn = new Dictionary<string, (bool IsInLibrary, int BookId)>();
+
+                foreach (var book in allBooks)
+                {
+                    var (isbn10, isbn13) = ISBNValidator.GetBothISBNFormats(book.ISBN);
+
+                    // Add both ISBN formats to dictionary
+                    if (!string.IsNullOrEmpty(isbn10))
+                    {
+                        booksByIsbn[isbn10] = (true, book.Id);
+                    }
+                    if (!string.IsNullOrEmpty(isbn13))
+                    {
+                        booksByIsbn[isbn13] = (true, book.Id);
+                    }
+                }
+
+                // Update all scan entries
+                foreach (var entry in _scanLog)
+                {
+                    string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
+
+                    if (booksByIsbn.TryGetValue(cleanedBarcode, out var bookInfo))
+                    {
+                        entry.IsInLibrary = bookInfo.IsInLibrary;
+                        entry.BookId = bookInfo.BookId;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Error updating scan history from DB: {ex.Message}");
             }
         }
 
@@ -520,6 +704,9 @@ namespace MyAthenaeio
     public class ScanLogEntry : INotifyPropertyChanged
     {
         private BitmapImage? _cover;
+        private bool _isInLibary;
+        private int? _bookId;
+
         public DateTime Timestamp { get; set; }
         public string Barcode { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
@@ -542,6 +729,42 @@ namespace MyAthenaeio
 
         [JsonIgnore]
         public bool IsCoverLoaded { get; set; } = false;
+
+        [JsonIgnore]
+        public bool IsInLibrary
+        {
+            get => _isInLibary;
+            set
+            {
+                if (_isInLibary != value)
+                {
+                    _isInLibary = value;
+                    OnPropertyChanged(nameof(IsInLibrary));
+                    OnPropertyChanged(nameof(ButtonText));
+                    OnPropertyChanged(nameof(ButtonEnabled));
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public int? BookId
+        {
+            get => _bookId;
+            set
+            {
+                if (_bookId != value)
+                {
+                    _bookId = value;
+                    OnPropertyChanged(nameof(BookId));
+                }
+            }
+        }
+
+        [JsonIgnore]
+        public string ButtonText => IsInLibrary ? "In Library ✓" : "Add to Library";
+
+        [JsonIgnore]
+        public bool ButtonEnabled => !IsInLibrary;
 
         public event PropertyChangedEventHandler? PropertyChanged;
 

@@ -96,6 +96,7 @@
                                                 <ColumnDefinition Width="80" />
                                                 <ColumnDefinition Width="160" />
                                                 <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="120" />
                                                 <ColumnDefinition Width="80" />
                                             </Grid.ColumnDefinitions>
                                             <Border
@@ -131,8 +132,35 @@
                                                 Foreground="Gray"
                                                 Text="{Binding Title}"
                                                 TextTrimming="CharacterEllipsis" />
-                                            <TextBlock
+                                            <Button
                                                 Grid.Column="4"
+                                                Height="30"
+                                                Margin="4,0"
+                                                VerticalAlignment="Center"
+                                                Click="AddToLibrary_Click"
+                                                Content="{Binding ButtonText}"
+                                                IsEnabled="{Binding ButtonEnabled}">
+                                                <Button.Style>
+                                                    <Style TargetType="Button">
+                                                        <Setter Property="Background" Value="#2196F3" />
+                                                        <Setter Property="Foreground" Value="White" />
+                                                        <Setter Property="BorderThickness" Value="0" />
+                                                        <Setter Property="Padding" Value="10,5" />
+                                                        <Setter Property="Cursor" Value="Hand" />
+                                                        <Style.Triggers>
+                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                <Setter Property="Background" Value="#E0E0E0" />
+                                                                <Setter Property="Foreground" Value="#757575" />
+                                                            </Trigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Background" Value="#1976D2" />
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBlock
+                                                Grid.Column="5"
                                                 HorizontalAlignment="Right"
                                                 VerticalAlignment="Center"
                                                 FontSize="11"

@@ -7,6 +7,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using Brushes = System.Windows.Media.Brushes;
 using MyAthenaeio.Data;
+using System.Diagnostics;
+using MyAthenaeio.Utils;
 
 
 namespace MyAthenaeio.Services
@@ -49,6 +51,15 @@ namespace MyAthenaeio.Services
                 // Optional fields
                 string? isbn10 = parsedJson["isbn_10"]?[0]?.ToString();
                 string? isbn13 = parsedJson["isbn_13"]?[0]?.ToString();
+
+                if (string.IsNullOrEmpty(isbn10) && string.IsNullOrEmpty(isbn13))
+                {
+                    string cleanedIsbn = ISBNValidator.CleanISBN(isbn);
+                    if (cleanedIsbn.Length == 10)
+                        isbn10 = cleanedIsbn;
+                    else if (cleanedIsbn.Length == 13)
+                        isbn13 = cleanedIsbn;
+                }
 
                 // Fetch cover
                 BitmapImage? cover = null;
@@ -118,12 +129,27 @@ namespace MyAthenaeio.Services
                 string? isbn10 = parsedJson["isbn_10"]?[0]?.ToString();
                 string? isbn13 = parsedJson["isbn_13"]?[0]?.ToString();
 
+                if (string.IsNullOrEmpty(isbn10) && string.IsNullOrEmpty(isbn13))
+                {
+                    string cleanedIsbn = ISBNValidator.CleanISBN(isbn);
+                    if (cleanedIsbn.Length == 10)
+                        isbn10 = cleanedIsbn;
+                    else if (cleanedIsbn.Length == 13)
+                        isbn13 = cleanedIsbn;
+                }
+
                 // Parse publish data
                 DateTime publishDate = DateTime.MinValue;
                 string? publishDateString = parsedJson["publish_date"]?.ToString();
                 if (!string.IsNullOrEmpty(publishDateString))
                 {
                     _ = DateTime.TryParse(publishDateString, out publishDate);
+                }
+
+                string publisher = string.Empty;
+                if (parsedJson["publishers"] is JArray publishersArray)
+                {
+                    publisher = publishersArray[0].ToString();
                 }
 
                 // Get the work and description
@@ -149,7 +175,7 @@ namespace MyAthenaeio.Services
                 }
 
                 // Authors array
-                List<Author> authors = new();
+                List<AuthorInfo> authorInfos = new();
                 if (parsedJson["authors"] is JArray authorsArray)
                 {
                     foreach (var author in authorsArray)
@@ -160,10 +186,10 @@ namespace MyAthenaeio.Services
                             continue;
 
                         // Fetch author name
-                        Result<Author> authorResult = await FetchAuthor(authorKey);
+                        Result<AuthorInfo> authorResult = await FetchAuthor(authorKey);
                         if (authorResult.IsSuccess && authorResult.Value != null)
                         {
-                            authors.Add(authorResult.Value);
+                            authorInfos.Add(authorResult.Value);
                         }
 
                         // Not critical if author fetch fails
@@ -178,17 +204,21 @@ namespace MyAthenaeio.Services
                     coverImage = coverResult.Value;
                 }
 
+                string coverUrl = FetchCoverUrlByISBN(isbn);
+
                 BookApiResponse book = new()
                 {
                     Title = title,
                     Subtitle = subtitle,
                     Description = description,
-                    Authors = authors,
+                    Authors = authorInfos,
                     PublishDate = publishDate,
+                    Publisher = publisher,
                     Isbn10 = isbn10,
                     Isbn13 = isbn13,
                     Key = key,
-                    Cover = coverImage ?? CreatePlaceholderImage()
+                    Cover = coverImage ?? CreatePlaceholderImage(),
+                    CoverImageUrl = coverUrl
                 };
 
                 return Result<BookApiResponse>.Success(book);
@@ -208,7 +238,7 @@ namespace MyAthenaeio.Services
             }
         }
 
-        private static async Task<Result<Author>> FetchAuthor(string authorKey)
+        private static async Task<Result<AuthorInfo>> FetchAuthor(string authorKey)
         {
             try
             {
@@ -217,7 +247,7 @@ namespace MyAthenaeio.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return Result<Author>.Failure($"Author API returned {response.StatusCode}");
+                    return Result<AuthorInfo>.Failure($"Author API returned {response.StatusCode}");
                 }
 
                 var jsonResponse = await response.Content.ReadAsStringAsync();
@@ -226,7 +256,7 @@ namespace MyAthenaeio.Services
                 string? name = parsedJson["name"]?.ToString();
                 if (string.IsNullOrEmpty(name))
                 {
-                    return Result<Author>.Failure("Author data missing name");
+                    return Result<AuthorInfo>.Failure("Author data missing name");
                 }
 
                 string? bioString = parsedJson["bio"]?.ToString();
@@ -237,25 +267,26 @@ namespace MyAthenaeio.Services
                     bio = bioObject["value"]?.ToString();
                 }
 
-                Author author = new()
+                AuthorInfo author = new()
                 {
                     Name = name,
+                    OpenLibraryKey = authorKey,
                     Bio = bio
                 };
 
-                return Result<Author>.Success(author);
+                return Result<AuthorInfo>.Success(author);
             }
             catch (HttpRequestException ex)
             {
-                return Result<Author>.Failure($"Network error: {ex.Message}");
+                return Result<AuthorInfo>.Failure($"Network error: {ex.Message}");
             }
             catch (JsonException ex)
             {
-                return Result<Author>.Failure($"Invalid author JSON: {ex.Message}");
+                return Result<AuthorInfo>.Failure($"Invalid author JSON: {ex.Message}");
             }
             catch (Exception ex)
             {
-                return Result<Author>.Failure($"Unexpected error: {ex.Message}");
+                return Result<AuthorInfo>.Failure($"Unexpected error: {ex.Message}");
             }
         }
 
@@ -303,6 +334,11 @@ namespace MyAthenaeio.Services
             {
                 return Result<string>.Failure($"Unexpected error: {ex.Message}");
             }
+        }
+
+        public static string FetchCoverUrlByISBN(string isbn)
+        {
+            return string.Format(_coverUrlTemplate, isbn);
         }
 
         public static async Task<Result<BitmapImage>> FetchCoverByISBN(string isbn)

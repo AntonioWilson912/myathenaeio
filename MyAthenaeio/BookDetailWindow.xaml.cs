@@ -30,7 +30,7 @@ namespace MyAthenaeio
             // Authors
             if (_book.Authors != null && _book.Authors.Count > 0)
             {
-                AuthorsText.Text = "by " + string.Join(", ", _book.Authors.ConvertAll(a => a.Name));
+                AuthorsText.Text = "by " + string.Join(", ", _book.Authors);
                 AuthorsList.ItemsSource = _book.Authors;
             }
             else

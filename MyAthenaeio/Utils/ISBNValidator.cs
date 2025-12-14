@@ -126,30 +126,108 @@ namespace MyAthenaeio.Utils
         }
 
         /// <summary>
-        /// Converts ISBN-10 to ISBN-13 format
+        /// Convert ISBN-10 to ISBN-13
         /// </summary>
-        public static string ConvertISBN10To13(string isbn10)
+        public static string? ConvertISBN10ToISBN13(string isbn10)
         {
-            string cleaned = CleanISBN(isbn10);
-
-            if (cleaned.Length != MIN_ISBN_LENGTH)
-                return isbn10;
-
-            // Remove check digit and add 978 digits
-            string isbn13Base = string.Concat("978", cleaned.AsSpan(0, 9));
-
-            // Calculate new check digit
-            int sum = 0;
-            for (int i = 0; i < 12; i++)
+            try
             {
-                int digit = cleaned[i] - '0';
-                sum += (i % 2 == 0) ? digit : digit * 3;
+                string cleaned = CleanISBN(isbn10);
+
+                if (cleaned.Length != 10)
+                    return null;
+
+                // Remove check digit (last character, might be X)
+                string base9 = cleaned.Substring(0, 9);
+
+                // Add 978 prefix
+                string isbn13Base = "978" + base9;
+
+                // Calculate new check digit
+                int sum = 0;
+                for (int i = 0; i < 12; i++)
+                {
+                    int digit = isbn13Base[i] - '0';
+                    sum += (i % 2 == 0) ? digit : digit * 3;
+                }
+
+                int checkDigit = (10 - (sum % 10)) % 10;
+
+                return isbn13Base + checkDigit;
             }
+            catch
+            {
+                return null;
+            }
+        }
 
-            int checkDigit = (10 - (sum % 10)) % 10;
-            
+        /// <summary>
+        /// Convert ISBN-13 to ISBN-10 (only works for 978 prefix)
+        /// </summary>
+        public static string? ConvertISBN13ToISBN10(string isbn13)
+        {
+            try
+            {
+                string cleaned = CleanISBN(isbn13);
 
-            return isbn13Base + checkDigit;
+                if (cleaned.Length != 13)
+                    return null;
+
+                // Only 978 prefix can be converted to ISBN-10
+                if (!cleaned.StartsWith("978"))
+                    return null;
+
+                // Remove 978 prefix and check digit
+                if (cleaned.Length < 12)
+                    return null;
+
+                string base9 = cleaned.Substring(3, 9);
+
+                // Calculate ISBN-10 check digit
+                int sum = 0;
+                for (int i = 0; i < 9; i++)
+                {
+                    sum += (base9[i] - '0') * (10 - i);
+                }
+
+                int checkDigit = (11 - (sum % 11)) % 11;
+                string checkChar = checkDigit == 10 ? "X" : checkDigit.ToString();
+
+                return base9 + checkChar;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Get both ISBN formats for comparison
+        /// </summary>
+        public static (string? isbn10, string? isbn13) GetBothISBNFormats(string isbn)
+        {
+            try
+            {
+                string cleaned = CleanISBN(isbn);
+
+                if (string.IsNullOrEmpty(cleaned))
+                    return (null, null);
+
+                if (cleaned.Length == 10)
+                {
+                    return (cleaned, ConvertISBN10ToISBN13(cleaned));
+                }
+                else if (cleaned.Length == 13)
+                {
+                    return (ConvertISBN13ToISBN10(cleaned), cleaned);
+                }
+
+                return (cleaned, null); // Return as-is if unknown format
+            }
+            catch
+            {
+                return (null, null);
+            }
         }
 
         /// <summary>

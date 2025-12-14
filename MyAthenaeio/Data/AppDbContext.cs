@@ -57,7 +57,6 @@ namespace MyAthenaeio.Data
                     .HasMaxLength(500);
 
                 entity.Property(e => e.Subtitle)
-                    .IsRequired()
                     .HasMaxLength(500);
 
                 entity.Property(e => e.Publisher)
@@ -69,10 +68,13 @@ namespace MyAthenaeio.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.OpenLibraryKey).IsUnique();
 
                 entity.Property(e => e.Name)
                     .IsRequired()
                     .HasMaxLength(200);
+                entity.Property(e => e.OpenLibraryKey)
+                    .HasMaxLength(50);
             });
 
             // Configure BookAuthors many-to-many
