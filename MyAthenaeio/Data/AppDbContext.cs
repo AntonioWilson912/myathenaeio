@@ -1,6 +1,6 @@
 ﻿using System.IO;
 using Microsoft.EntityFrameworkCore;
-using MyAthenaeio.Models;
+using MyAthenaeio.Models.Entities;
 
 
 namespace MyAthenaeio.Data

@@ -1,7 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Conventions;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
-namespace MyAthenaeio.Models
+namespace MyAthenaeio.Models.Entities
 {
     public class Book
     {

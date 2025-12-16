@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace MyAthenaeio.Models
+namespace MyAthenaeio.Models.Entities
 {
     public class Loan
     {

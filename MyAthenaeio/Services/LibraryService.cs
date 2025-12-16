@@ -1,6 +1,8 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Data;
-using MyAthenaeio.Models;
+using MyAthenaeio.Models.DTOs;
+using MyAthenaeio.Models.Entities;
+using MyAthenaeio.Models.ViewModels;
 using MyAthenaeio.Utils;
 
 namespace MyAthenaeio.Services

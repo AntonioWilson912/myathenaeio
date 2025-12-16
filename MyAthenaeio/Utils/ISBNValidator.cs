@@ -1,8 +1,4 @@
-﻿using System.Diagnostics.CodeAnalysis;
-using System.Linq;
-using System.Windows.Navigation;
-
-namespace MyAthenaeio.Utils
+﻿namespace MyAthenaeio.Utils
 {
     internal static class ISBNValidator
     {

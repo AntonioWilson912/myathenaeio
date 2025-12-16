@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Text;
 using System.Windows.Input;
 using MyAthenaeio.Utils;
 
@@ -20,7 +16,7 @@ namespace MyAthenaeio.Scanner
         private const int MAX_BARCODE_LENGTH = 18; // Maximum valid barcode
         private const int MIN_KEYS_PER_SECOND = 50; // Scanner speed
 
-        public event EventHandler<string> BarcodeScanned;
+        public event EventHandler<string>? BarcodeScanned;
 
         public void OnKeyPress(Key key)
         {

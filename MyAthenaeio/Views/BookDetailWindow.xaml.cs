@@ -1,10 +1,8 @@
 ﻿using System.Windows;
-using MyAthenaeio.Data;
-using MyAthenaeio.Models;
+using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Services;
-using Brushes = System.Windows.Media.Brushes;
 
-namespace MyAthenaeio
+namespace MyAthenaeio.Views
 {
     /// <summary>
     /// Interaction logic for BookDetailWindow.xaml
@@ -30,7 +28,7 @@ namespace MyAthenaeio
             // Authors
             if (_book.Authors != null && _book.Authors.Count > 0)
             {
-                AuthorsText.Text = "by " + string.Join(", ", _book.Authors);
+                AuthorsText.Text = "by " + string.Join(", ", _book.Authors.Select(a => a.Name));
                 AuthorsList.ItemsSource = _book.Authors;
             }
             else

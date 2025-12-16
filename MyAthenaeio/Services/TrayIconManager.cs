@@ -1,7 +1,4 @@
-﻿using System;
-using System.Drawing;
-using System.Windows;
-using System.Windows.Forms;
+﻿using System.Windows;
 using MyAthenaeio.Scanner;
 using Application = System.Windows.Application;
 
@@ -9,7 +6,7 @@ namespace MyAthenaeio.Services
 {
     internal class TrayIconManager : IDisposable
     {
-        private NotifyIcon _notifyIcon;
+        private NotifyIcon? _notifyIcon;
         private ScannerManager _scannerManager;
         private int _todayCount = 0;
 
@@ -99,7 +96,7 @@ namespace MyAthenaeio.Services
             return menu;
         }
 
-        private void OnBookScanned(object sender, string barcode)
+        private void OnBookScanned(object? sender, string barcode)
         {
             _todayCount++;
 
@@ -107,7 +104,8 @@ namespace MyAthenaeio.Services
             ShowNotification("Book Scanned", $"ISBN: {barcode}\nTotal today: {_todayCount}");
 
             // Update tray tooltip
-            _notifyIcon.Text = $"myAthenaeio - {_todayCount} scanned today";
+            if (_notifyIcon != null)
+                _notifyIcon.Text = $"myAthenaeio - {_todayCount} scanned today";
         }
 
         public void ShowNotification(string title, string message, ToolTipIcon icon = ToolTipIcon.Info)
@@ -118,7 +116,7 @@ namespace MyAthenaeio.Services
             }
         }
 
-        private void TrayIcon_DoubleClick(object sender, EventArgs e)
+        private void TrayIcon_DoubleClick(object? sender, EventArgs e)
         {
             ShowMainWindow();
         }
@@ -148,7 +146,9 @@ namespace MyAthenaeio.Services
         public void UpdateTodayCount(int count)
         {
             _todayCount = count;
-            _notifyIcon.Text = $"myAthenaeio - {_todayCount} scanned today";
+
+            if (_notifyIcon != null)
+                _notifyIcon.Text = $"myAthenaeio - {_todayCount} scanned today";
         }
 
         public void Dispose()

@@ -3,24 +3,21 @@ using System.IO;
 using Path = System.IO.Path;
 using System.Windows;
 using System.Windows.Input;
-using System.Windows.Media.Imaging;
-using MyAthenaeio.Data;
-using MyAthenaeio.Models;
 using MyAthenaeio.Scanner;
 using MyAthenaeio.Services;
 using MyAthenaeio.Utils;
 using Brushes = System.Windows.Media.Brushes;
 using MessageBox = System.Windows.MessageBox;
-using System.Text.Json.Serialization;
 using System.Text.Json;
-using System.ComponentModel;
 using System.Windows.Controls;
 using System.Windows.Media;
 using Cursors = System.Windows.Input.Cursors;
-using System.Diagnostics;
 using Button = System.Windows.Controls.Button;
+using MyAthenaeio.Models.Entities;
+using MyAthenaeio.Models.DTOs;
+using MyAthenaeio.Models.ViewModels;
 
-namespace MyAthenaeio
+namespace MyAthenaeio.Views
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -113,8 +110,10 @@ namespace MyAthenaeio
         }
 
 
-        private void OnBarcodeScanned(object sender, string barcode)
+        private void OnBarcodeScanned(object? sender, string barcode)
         {
+            if (sender == null) return;
+
             Dispatcher.Invoke(async () =>
             {
                 _scanCount++;
@@ -311,8 +310,10 @@ namespace MyAthenaeio
             }
         }
 
-        private void Window_StateChanged(object sender, EventArgs e)
+        private void Window_StateChanged(object? sender, EventArgs e)
         {
+            if (sender == null) return;
+
             if (WindowState == WindowState.Minimized)
             {
                 // User wants background scanning
@@ -384,7 +385,7 @@ namespace MyAthenaeio
             }
         }
 
-        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             // Save books for later use
             SaveData();
@@ -701,83 +702,5 @@ namespace MyAthenaeio
         }
     }
 
-    public class ScanLogEntry : INotifyPropertyChanged
-    {
-        private BitmapImage? _cover;
-        private bool _isInLibary;
-        private int? _bookId;
-
-        public DateTime Timestamp { get; set; }
-        public string Barcode { get; set; } = string.Empty;
-        public string Title { get; set; } = string.Empty;
-
-        public string Source { get; set; } = string.Empty;
-
-        [JsonIgnore]
-        public BitmapImage? Cover
-        {
-            get => _cover;
-            set
-            {
-                if (_cover != value)
-                {
-                    _cover = value;
-                    OnPropertyChanged(nameof(Cover));
-                }
-            }
-        }
-
-        [JsonIgnore]
-        public bool IsCoverLoaded { get; set; } = false;
-
-        [JsonIgnore]
-        public bool IsInLibrary
-        {
-            get => _isInLibary;
-            set
-            {
-                if (_isInLibary != value)
-                {
-                    _isInLibary = value;
-                    OnPropertyChanged(nameof(IsInLibrary));
-                    OnPropertyChanged(nameof(ButtonText));
-                    OnPropertyChanged(nameof(ButtonEnabled));
-                }
-            }
-        }
-
-        [JsonIgnore]
-        public int? BookId
-        {
-            get => _bookId;
-            set
-            {
-                if (_bookId != value)
-                {
-                    _bookId = value;
-                    OnPropertyChanged(nameof(BookId));
-                }
-            }
-        }
-
-        [JsonIgnore]
-        public string ButtonText => IsInLibrary ? "In Library ✓" : "Add to Library";
-
-        [JsonIgnore]
-        public bool ButtonEnabled => !IsInLibrary;
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-    }
-
-    public class AppData
-    {
-        public int ScanCount { get; set; }
-        public List<ScanLogEntry> ScanLog { get; set; } = new();
-    }
+    
 }

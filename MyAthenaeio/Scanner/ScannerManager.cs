@@ -7,12 +7,12 @@ namespace MyAthenaeio.Scanner
     internal class ScannerManager
     {
         private ScannerMode _currentMode = ScannerMode.Disabled;
-        private GlobalKeyboardHook _globalHook;
+        private GlobalKeyboardHook? _globalHook;
         private BarcodeScanner _scanner;
         private bool _backgroundModeEnabled = false;
         private bool _isShowingDialog = false;
 
-        public event EventHandler<string> BarcodeScanned;
+        public event EventHandler<string>? BarcodeScanned;
         public bool BackgroundModeEnabled => _backgroundModeEnabled;
 
         public ScannerManager()

@@ -2,13 +2,11 @@
 using System.Net.Http;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using MyAthenaeio.Models;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
 using Brushes = System.Windows.Media.Brushes;
-using MyAthenaeio.Data;
-using System.Diagnostics;
 using MyAthenaeio.Utils;
+using MyAthenaeio.Models.DTOs;
 
 
 namespace MyAthenaeio.Services
