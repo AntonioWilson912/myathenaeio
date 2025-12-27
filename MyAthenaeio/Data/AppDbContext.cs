@@ -9,6 +9,7 @@ namespace MyAthenaeio.Data
     {
         // DbSets for tables
         public DbSet<Book> Books { get; set; }
+        public DbSet<BookCopy> BookCopies { get; set; }
         public DbSet<Author> Authors { get; set; }
         public DbSet<Borrower> Borrowers { get; set; }
         public DbSet<Loan> Loans { get; set; }
@@ -63,6 +64,26 @@ namespace MyAthenaeio.Data
                     .HasMaxLength(200);
             });
 
+            // Configure BookCopy entity
+            modelBuilder.Entity<BookCopy>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.BookId);
+                entity.HasIndex(e => new { e.BookId, e.CopyNumber }).IsUnique();
+
+                entity.Property(e => e.CopyNumber)
+                    .IsRequired()
+                    .HasMaxLength(50);
+
+                entity.Property(e => e.Notes)
+                    .HasMaxLength(100);
+
+                entity.HasOne(e => e.Book)
+                    .WithMany(b => b.Copies)
+                    .HasForeignKey(e => e.BookId)
+                    .OnDelete(DeleteBehavior.Cascade);
+            });
+
             // Configure Author entity
             modelBuilder.Entity<Author>(entity =>
             {
@@ -113,12 +134,18 @@ namespace MyAthenaeio.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.BookId);
+                entity.HasIndex(e => e.BookCopyId);
                 entity.HasIndex(e => e.BorrowerId);
                 entity.HasIndex(e => e.ReturnDate);
 
                 entity.HasOne(e => e.Book)
                     .WithMany(b => b.Loans)
                     .HasForeignKey(e => e.BookId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(e => e.BookCopy)
+                    .WithMany(bc => bc.Loans)
+                    .HasForeignKey(e => e.BookCopyId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(e => e.Borrower)
@@ -146,7 +173,7 @@ namespace MyAthenaeio.Data
 
                 entity.Property(e => e.Name)
                     .IsRequired()
-                    .HasMaxLength(100);
+                    .HasMaxLength(50);
             });
 
             // Configure BookGenres many-to-many
@@ -155,8 +182,10 @@ namespace MyAthenaeio.Data
                 .WithMany(c => c.Books)
                 .UsingEntity<Dictionary<string, object>>(
                     "BookGenres",
-                    j => j.HasOne<Genre>().WithMany().HasForeignKey("GenreId"),
-                    j => j.HasOne<Book>().WithMany().HasForeignKey("BookId"),
+                    j => j.HasOne<Genre>().WithMany().HasForeignKey("GenreId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                    j => j.HasOne<Book>().WithMany().HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade),
                     j => j.HasKey("BookId", "GenreId"));
 
             // Configure Tag entity
@@ -176,8 +205,10 @@ namespace MyAthenaeio.Data
                .WithMany(c => c.Books)
                .UsingEntity<Dictionary<string, object>>(
                    "BookTags",
-                   j => j.HasOne<Tag>().WithMany().HasForeignKey("TagId"),
-                   j => j.HasOne<Book>().WithMany().HasForeignKey("BookId"),
+                   j => j.HasOne<Tag>().WithMany().HasForeignKey("TagId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                   j => j.HasOne<Book>().WithMany().HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade),
                    j => j.HasKey("BookId", "TagId"));
 
             // Configure Collection entity
@@ -189,6 +220,9 @@ namespace MyAthenaeio.Data
                 entity.Property(e => e.Name)
                     .IsRequired()
                     .HasMaxLength(50);
+
+                entity.Property(e => e.Description)
+                    .HasMaxLength(200);
             });
 
             // Configure BookCollections entity many-to-many
@@ -197,8 +231,10 @@ namespace MyAthenaeio.Data
                .WithMany(c => c.Books)
                .UsingEntity<Dictionary<string, object>>(
                    "BookCollections",
-                   j => j.HasOne<Collection>().WithMany().HasForeignKey("CollectionId"),
-                   j => j.HasOne<Book>().WithMany().HasForeignKey("BookId"),
+                   j => j.HasOne<Collection>().WithMany().HasForeignKey("CollectionId")
+                        .OnDelete(DeleteBehavior.Cascade),
+                   j => j.HasOne<Book>().WithMany().HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade),
                    j => j.HasKey("BookId", "CollectionId"));
 
             // Seed default categories

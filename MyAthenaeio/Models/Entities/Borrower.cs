@@ -15,6 +15,8 @@ namespace MyAthenaeio.Models.Entities
 
         [MaxLength(50)]
         public string? Phone { get; set; }
+
+        public string? Notes { get; set; }
         public DateTime DateAdded { get; set; }
 
         public List<Loan> Loans { get; set; } = [];

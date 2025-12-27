@@ -235,7 +235,7 @@ namespace MyAthenaeio.Views
                     Publisher = bookData.Publisher,
                     PublicationYear = bookData.PublishDate?.Year,
                     CoverImageUrl = bookData.CoverImageUrl,
-                    Copies = 1
+                    Copies = []
                 };
 
                 var addedBook = await LibraryService.AddBookAsync(book, bookData.Authors);
@@ -701,6 +701,4 @@ namespace MyAthenaeio.Views
             _coverLoadSemaphore?.Dispose();
         }
     }
-
-    
 }
