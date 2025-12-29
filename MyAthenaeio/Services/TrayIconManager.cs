@@ -1,13 +1,14 @@
 ﻿using System.Windows;
+using System.Windows.Controls;
+using H.NotifyIcon;
 using MyAthenaeio.Scanner;
-using Application = System.Windows.Application;
 
 namespace MyAthenaeio.Services
 {
     internal class TrayIconManager : IDisposable
     {
-        private NotifyIcon? _notifyIcon;
-        private ScannerManager _scannerManager;
+        private TaskbarIcon? _taskbarIcon;
+        private readonly ScannerManager _scannerManager;
         private int _todayCount = 0;
 
         public TrayIconManager(ScannerManager scannerManager)
@@ -18,77 +19,87 @@ namespace MyAthenaeio.Services
 
         private void InitializeTrayIcon()
         {
+            _taskbarIcon = new TaskbarIcon
+            {
+                ToolTipText = "myAthenaeio - Book Scanner",
+                ContextMenu = CreateContextMenu()
+            };
+
             // Load custom icon
             var iconPath = System.IO.Path.Combine(
                 AppDomain.CurrentDomain.BaseDirectory,
                 "Resources", "Icons", "tray.ico");
 
-            Icon icon;
             if (System.IO.File.Exists(iconPath))
             {
-                icon = new Icon(iconPath);
+                _taskbarIcon.IconSource = new System.Windows.Media.Imaging.BitmapImage(
+                    new Uri(iconPath, UriKind.Absolute));
             }
-            else
-            {
-                // Fallback to system icon
-                icon = SystemIcons.Application;
-            }
+            // Note: H.NotifyIcon will use a default icon if none is set
 
-            _notifyIcon = new NotifyIcon
-            {
-                Icon = icon,
-                Visible = true,
-                Text = "myAthenaeio - Book Scanner"
-            };
-
-            _notifyIcon.DoubleClick += TrayIcon_DoubleClick;
-            _notifyIcon.ContextMenuStrip = CreateContextMenu();
+            // Double-click to open main window
+            _taskbarIcon.TrayMouseDoubleClick += (s, e) => ShowMainWindow();
 
             // Subscribe to scanner events
             _scannerManager.BarcodeScanned += OnBookScanned;
         }
 
-        private ContextMenuStrip CreateContextMenu()
+        private ContextMenu CreateContextMenu()
         {
-            var menu = new ContextMenuStrip();
+            var menu = new ContextMenu();
 
             // Open main window
-            var openItem = new ToolStripMenuItem("📚 Open Library", null, (s, e) => ShowMainWindow());
-            openItem.Font = new Font(openItem.Font, System.Drawing.FontStyle.Bold);
+            var openItem = new MenuItem
+            {
+                Header = "📚 Open Library",
+                FontWeight = FontWeights.Bold
+            };
+            openItem.Click += (s, e) => ShowMainWindow();
             menu.Items.Add(openItem);
 
-            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(new Separator());
 
-            // Status item (non-clicktable)
-            var statusItem = new ToolStripMenuItem($"Scanned today: {_todayCount}")
+            // Status item (non-clickable)
+            var statusItem = new MenuItem
             {
-                Enabled = false
+                Header = $"Scanned today: {_todayCount}",
+                IsEnabled = false
             };
             menu.Items.Add(statusItem);
 
             // Scanner mode status
-            var modeItem = new ToolStripMenuItem("Scanner: Active")
+            var modeItem = new MenuItem
             {
-                Enabled = false
+                Header = "Scanner: Active",
+                IsEnabled = false
             };
             menu.Items.Add(modeItem);
 
-            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(new Separator());
 
             // Pause/Resume scanner
-            var pauseItem = new ToolStripMenuItem("⏸️ Pause Scanner", null, (s, e) => ToggleScanner());
+            var pauseItem = new MenuItem
+            {
+                Header = "⏸️ Pause Scanner"
+            };
+            pauseItem.Click += (s, e) => ToggleScanner();
             menu.Items.Add(pauseItem);
 
-            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add(new Separator());
 
             // Exit
-            menu.Items.Add("❌ Exit", null, (s, e) => ExitApplication());
+            var exitItem = new MenuItem
+            {
+                Header = "❌ Exit"
+            };
+            exitItem.Click += (s, e) => ExitApplication();
+            menu.Items.Add(exitItem);
 
             // Update menu dynamically when opened
-            menu.Opening += (s, e) =>
+            menu.Opened += (s, e) =>
             {
-                statusItem.Text = $"Scanned today: {_todayCount}";
-                modeItem.Text = _scannerManager.BackgroundModeEnabled
+                statusItem.Header = $"Scanned today: {_todayCount}";
+                modeItem.Header = _scannerManager.BackgroundModeEnabled
                     ? "Scanner: Active (Background)"
                     : "Scanner: Active (Focused)";
             };
@@ -104,24 +115,16 @@ namespace MyAthenaeio.Services
             ShowNotification("Book Scanned", $"ISBN: {barcode}\nTotal today: {_todayCount}");
 
             // Update tray tooltip
-            if (_notifyIcon != null)
-                _notifyIcon.Text = $"myAthenaeio - {_todayCount} scanned today";
+            if (_taskbarIcon != null)
+                _taskbarIcon.ToolTipText = $"myAthenaeio - {_todayCount} scanned today";
         }
 
-        public void ShowNotification(string title, string message, ToolTipIcon icon = ToolTipIcon.Info)
+        public void ShowNotification(string title, string message)
         {
-            if (_notifyIcon != null && _notifyIcon.Visible)
-            {
-                _notifyIcon.ShowBalloonTip(3000, title, message, icon);
-            }
+            _taskbarIcon?.ShowNotification(title, message);
         }
 
-        private void TrayIcon_DoubleClick(object? sender, EventArgs e)
-        {
-            ShowMainWindow();
-        }
-
-        private void ShowMainWindow()
+        private static void ShowMainWindow()
         {
             var mainWindow = Application.Current.MainWindow;
             if (mainWindow != null)
@@ -135,10 +138,10 @@ namespace MyAthenaeio.Services
         private void ToggleScanner()
         {
             // TODO: Implement pause/resume functionality
-            ShowNotification("Scanner", "Pause/Resume coming soon!", ToolTipIcon.Warning);
+            ShowNotification("Scanner", "Pause/Resume coming soon!");
         }
 
-        private void ExitApplication()
+        private static void ExitApplication()
         {
             Application.Current.Shutdown();
         }
@@ -147,17 +150,13 @@ namespace MyAthenaeio.Services
         {
             _todayCount = count;
 
-            if (_notifyIcon != null)
-                _notifyIcon.Text = $"myAthenaeio - {_todayCount} scanned today";
+            if (_taskbarIcon != null)
+                _taskbarIcon.ToolTipText = $"myAthenaeio - {_todayCount} scanned today";
         }
 
         public void Dispose()
         {
-            if (_notifyIcon != null)
-            {
-                _notifyIcon.Visible = false;
-                _notifyIcon.Dispose();
-            }
+            _taskbarIcon?.Dispose();
         }
     }
 }

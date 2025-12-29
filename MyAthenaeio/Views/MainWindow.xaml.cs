@@ -1,20 +1,15 @@
 ﻿using System.Collections.ObjectModel;
 using System.IO;
-using Path = System.IO.Path;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Media;
+using System.Text.Json;
+using System.Windows.Controls;
 using MyAthenaeio.Scanner;
 using MyAthenaeio.Services;
 using MyAthenaeio.Utils;
-using Brushes = System.Windows.Media.Brushes;
-using MessageBox = System.Windows.MessageBox;
-using System.Text.Json;
-using System.Windows.Controls;
-using System.Windows.Media;
-using Cursors = System.Windows.Input.Cursors;
-using Button = System.Windows.Controls.Button;
-using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.DTOs;
+using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
 
 namespace MyAthenaeio.Views
@@ -24,21 +19,30 @@ namespace MyAthenaeio.Views
     /// </summary>
     public partial class MainWindow : Window
     {
-        private ScannerManager _scannerManager;
-        private TrayIconManager _trayIconManager;
-        private ObservableCollection<ScanLogEntry> _scanLog;
+        private readonly ScannerManager _scannerManager;
+        private readonly TrayIconManager _trayIconManager;
+        private readonly ObservableCollection<ScanLogEntry> _scanLog;
         private int _scanCount = 0;
 
-        private HashSet<string> _loadingCovers = new();
-        private SemaphoreSlim _coverLoadSemaphore = new(3); // Limit concurrent cover loads
+        private readonly HashSet<string> _loadingCovers = [];
+        private readonly SemaphoreSlim _coverLoadSemaphore = new(3); // Limit concurrent cover loads
 
-        private static string SaveFilePath => Path.Combine(
+        private readonly ObservableCollection<Book> _books;
+        private string _searchText = "";
+
+        private static string LibrarySaveFilePath => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+            "myAthenaeio",
+            "library.db"
+        );
+
+        private static string ScanSaveFilePath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "myAthenaeio",
             "scan_data.json"
         );
 
-        private static JsonSerializerOptions SerializerOptions = new()
+        private static readonly JsonSerializerOptions SerializerOptions = new()
         {
             WriteIndented = true
         };
@@ -47,8 +51,10 @@ namespace MyAthenaeio.Views
         {
             InitializeComponent();
 
-            _scanLog = new ObservableCollection<ScanLogEntry>();
+            _scanLog = [];
             ScanLogList.ItemsSource = _scanLog;
+
+            _books = [];
 
             _scannerManager = new ScannerManager();
             _scannerManager.BarcodeScanned += OnBarcodeScanned;
@@ -62,13 +68,17 @@ namespace MyAthenaeio.Views
                 _scannerManager.SetMode(ScannerMode.FocusedFieldOnly);
                 ScannerInputField.Focus();
                 UpdateCurrentModeText();
+                _ = LoadBooks();
             };
 
             // Handle minimize to tray behavior
             StateChanged += Window_StateChanged;
 
-            // Load saved data
-            LoadData();
+            // Load saved book data
+            LoadBookData();
+
+            // Load saved scan data
+            LoadScanData();
 
             // Register closing event
             Closing += Window_Closing;
@@ -153,10 +163,7 @@ namespace MyAthenaeio.Views
                 }
 
                 // Fallback: check using the scanned barcode itself
-                if (existingBookInDb == null)
-                {
-                    existingBookInDb = await LibraryService.GetBookByISBNAsync(barcode);
-                }
+                existingBookInDb ??= await LibraryService.GetBookByISBNAsync(barcode);
 
                 bool isInLibrary = existingBookInDb != null;
                 int? bookId = existingBookInDb?.Id;
@@ -194,7 +201,7 @@ namespace MyAthenaeio.Views
                         $"ISBN: {ISBNValidator.FormatISBN(barcode)}"
                     );
 
-                SaveData();
+                SaveScanData();
             });
         }
 
@@ -269,7 +276,11 @@ namespace MyAthenaeio.Views
 
                 MessageBox.Show($"'{bookData.Title}' has been added to your library!",
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
-            } catch (InvalidOperationException ex)
+
+                // Refresh the library view
+                await LoadBooks();
+            }
+            catch (InvalidOperationException ex)
             {
                 string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
                 var existingBook = await LibraryService.GetBookByISBNAsync(cleanedBarcode);
@@ -296,15 +307,17 @@ namespace MyAthenaeio.Views
                     entry.IsInLibrary = true;
                 }
 
-                    entry.IsInLibrary = true;
+                entry.IsInLibrary = true;
                 MessageBox.Show(ex.Message, "Already in Library",
                     MessageBoxButton.OK, MessageBoxImage.Error);
-            } catch (Exception ex)
+            }
+            catch (Exception ex)
             {
                 MessageBox.Show($"Failed to add book: {ex.Message}",
                     "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                 button.IsEnabled = true;
-            } finally
+            }
+            finally
             {
                 Mouse.OverrideCursor = null;
             }
@@ -388,7 +401,7 @@ namespace MyAthenaeio.Views
         private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
             // Save books for later use
-            SaveData();
+            SaveScanData();
 
             _trayIconManager?.Dispose();
             _scannerManager?.Dispose();
@@ -432,12 +445,12 @@ namespace MyAthenaeio.Views
             CurrentModeText.Text = modeText;
         }
 
-        private void SaveData()
+        private void SaveScanData()
         {
             try
             {
-                // Ensure directoy exists
-                string? directory = Path.GetDirectoryName(SaveFilePath);
+                // Ensure directory exists
+                string? directory = Path.GetDirectoryName(ScanSaveFilePath);
                 if (directory != null && !Directory.Exists(directory))
                 {
                     Directory.CreateDirectory(directory);
@@ -457,23 +470,38 @@ namespace MyAthenaeio.Views
 
                 string json = JsonSerializer.Serialize(dataToSave, SerializerOptions);
 
-                File.WriteAllText(SaveFilePath, json);
+                File.WriteAllText(ScanSaveFilePath, json);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to save data: {ex.Message}", "Save Error",
+                MessageBox.Show($"Failed to save scan data: {ex.Message}", "Save Error",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
-        private void LoadData()
+        private static void LoadBookData()
         {
             try
             {
-                if (!File.Exists(SaveFilePath))
+                if (!File.Exists(LibrarySaveFilePath))
                     return; // No saved data yet
 
-                string json = File.ReadAllText(SaveFilePath);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load book data: {ex.Message}", "Load Error",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void LoadScanData()
+        {
+            try
+            {
+                if (!File.Exists(ScanSaveFilePath))
+                    return; // No saved data yet
+
+                string json = File.ReadAllText(ScanSaveFilePath);
                 var loadedData = JsonSerializer.Deserialize<AppData>(json);
 
                 if (loadedData == null)
@@ -584,8 +612,10 @@ namespace MyAthenaeio.Views
                 }
 
                 // Open detail window
-                var detailWindow = new BookDetailWindow(bookResult.Value!);
-                detailWindow.Owner = this;
+                var detailWindow = new BookDetailWindow(bookResult.Value!)
+                {
+                    Owner = this
+                };
                 detailWindow.ShowDialog();
             }
             finally
@@ -679,7 +709,7 @@ namespace MyAthenaeio.Views
             return visibleItems;
         }
 
-        private ScrollViewer? FindScrollViewer(DependencyObject root)
+        private static ScrollViewer? FindScrollViewer(DependencyObject root)
         {
             if (root is ScrollViewer scrollViewer)
                 return scrollViewer;
@@ -699,6 +729,146 @@ namespace MyAthenaeio.Views
         {
             base.OnClosed(e);
             _coverLoadSemaphore?.Dispose();
+        }
+
+        // Event handlers for View Library tab
+        private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                _searchText = textBox.Text;
+            }
+        }
+
+        private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Enter)
+            {
+                SearchBooks();
+            }
+        }
+
+        private void SearchButton_Click(object sender, RoutedEventArgs e)
+        {
+            SearchBooks();
+        }
+
+        private async void AddManualEntryButton_Click(object sender, RoutedEventArgs e)
+        {
+            var addWindow = new BookAddWindow
+            {
+                Owner = this
+            };
+            if (addWindow.ShowDialog() == true)
+            {
+                // Refresh the library after adding
+                await LoadBooks();
+            }
+        }
+
+        private async void RefreshButton_Click(object sender, RoutedEventArgs e)
+        {
+            await LoadBooks();
+        }
+
+        private async void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is DataGrid grid && grid.SelectedItem is Book book)
+            {
+                await ViewBookDetails(book);
+            }
+        }
+
+        private async void ViewDetailsButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button button && button.DataContext is Book book)
+            {
+                await ViewBookDetails(book);
+            }
+        }
+
+        private async Task ViewBookDetails(Book book)
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+
+            try
+            {
+                // Fetch full book details
+                string cleanedISBN = ISBNValidator.CleanISBN(book.ISBN);
+                Result<BookApiResponse> bookResult = await BookAPIService.FetchFullBookByISBN(cleanedISBN);
+
+                if (!bookResult.IsSuccess)
+                {
+                    MessageBox.Show($"Could not load book details: {bookResult.Error}",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Open detail window
+                var detailWindow = new BookDetailWindow(bookResult.Value!)
+                {
+                    Owner = this
+                };
+                detailWindow.ShowDialog();
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
+        }
+
+        private async void SearchBooks()
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+
+            try
+            {
+                if (string.IsNullOrWhiteSpace(_searchText))
+                {
+                    await LoadBooks();
+                    return;
+                }
+
+                var books = await LibraryService.SearchBooksAsync(_searchText);
+                _books.Clear();
+                foreach (var book in books)
+                {
+                    _books.Add(book);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to search books: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
+        }
+
+        private async Task LoadBooks()
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+
+            try
+            {
+                var books = await LibraryService.GetAllBooksAsync();
+                _books.Clear();
+                foreach (var book in books)
+                {
+                    _books.Add(book);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load books: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
     }
 }
