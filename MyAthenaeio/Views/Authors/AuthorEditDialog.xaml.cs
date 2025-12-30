@@ -12,14 +12,14 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 
-namespace MyAthenaeio.Views
+namespace MyAthenaeio.Views.Authors
 {
     /// <summary>
-    /// Interaction logic for BookAddWindow.xaml
+    /// Interaction logic for AuthorEditDialog.xaml
     /// </summary>
-    public partial class BookAddWindow : Window
+    public partial class AuthorEditDialog : Window
     {
-        public BookAddWindow()
+        public AuthorEditDialog()
         {
             InitializeComponent();
         }

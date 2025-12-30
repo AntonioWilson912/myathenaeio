@@ -11,6 +11,7 @@ using MyAthenaeio.Utils;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
+using MyAthenaeio.Views.Books;
 
 namespace MyAthenaeio.Views
 {
@@ -129,7 +130,7 @@ namespace MyAthenaeio.Views
                 _scanCount++;
 
                 // Fetch ISBN details
-                Result<BookApiResponse> bookResult = await BookAPIService.FetchBookByISBN(barcode);
+                Result<BookApiResponse> bookResult = await BookApiService.FetchBookByISBN(barcode);
                 if (!bookResult.IsSuccess)
                 {
                     //Only show error if window is active or this is a manual scan
@@ -174,7 +175,7 @@ namespace MyAthenaeio.Views
                     Timestamp = DateTime.Now,
                     Barcode = ISBNValidator.FormatISBN(barcode),
                     Title = book.Title,
-                    Cover = book.Cover ?? BookAPIService.CreatePlaceholderImage(),
+                    Cover = book.Cover ?? BookApiService.CreatePlaceholderImage(),
                     Source = sender == this ? "Manual" : (IsActive ? "Scanner" : "Background"),
                     IsCoverLoaded = true,
                     IsInLibrary = isInLibrary,
@@ -213,15 +214,13 @@ namespace MyAthenaeio.Views
             if (entry.IsInLibrary)
                 return;
 
-            Mouse.OverrideCursor = Cursors.Wait;
-
             string barcodeToAdd = entry.Barcode;
 
             try
             {
                 // Fetch full book details
                 string cleanedBarcode = ISBNValidator.CleanISBN(barcodeToAdd);
-                Result<BookApiResponse> bookResult = await BookAPIService.FetchFullBookByISBN(cleanedBarcode);
+                Result<BookApiResponse> bookResult = await BookApiService.FetchFullBookByISBN(cleanedBarcode);
 
                 if (!bookResult.IsSuccess)
                 {
@@ -479,12 +478,15 @@ namespace MyAthenaeio.Views
             }
         }
 
-        private static void LoadBookData()
+        private async void LoadBookData()
         {
             try
             {
                 if (!File.Exists(LibrarySaveFilePath))
                     return; // No saved data yet
+
+                var books = await LibraryService.GetAllBooksAsync(BookIncludeOptions.AuthorsOnly);
+                BooksDataGrid.ItemsSource = books;
 
             }
             catch (Exception ex)
@@ -518,7 +520,7 @@ namespace MyAthenaeio.Views
                         Barcode = entry.Barcode,
                         Title = entry.Title,
                         Source = entry.Source,
-                        Cover = BookAPIService.CreatePlaceholderImage(),
+                        Cover = BookApiService.CreatePlaceholderImage(),
                         IsCoverLoaded = false
                     });
                 }
@@ -595,14 +597,11 @@ namespace MyAthenaeio.Views
             if (ScanLogList.SelectedItem is not ScanLogEntry entry)
                 return;
 
-            // Show loading cursor
-            Mouse.OverrideCursor = Cursors.Wait;
-
             try
             {
                 // Fetch full book details
                 string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
-                Result<BookApiResponse> bookResult = await BookAPIService.FetchFullBookByISBN(cleanedBarcode);
+                Result<BookApiResponse> bookResult = await BookApiService.FetchFullBookByISBN(cleanedBarcode);
 
                 if (!bookResult.IsSuccess)
                 {
@@ -612,7 +611,7 @@ namespace MyAthenaeio.Views
                 }
 
                 // Open detail window
-                var detailWindow = new BookDetailWindow(bookResult.Value!)
+                var detailWindow = new ScannedBookDetailWindow(bookResult.Value!)
                 {
                     Owner = this
                 };
@@ -651,7 +650,7 @@ namespace MyAthenaeio.Views
             try
             {
                 string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
-                var coverResult = await BookAPIService.FetchCoverByISBN(cleanedBarcode);
+                var coverResult = await BookApiService.FetchCoverByISBN(cleanedBarcode);
 
                 if (coverResult.IsSuccess)
                 {
@@ -755,7 +754,7 @@ namespace MyAthenaeio.Views
 
         private async void AddManualEntryButton_Click(object sender, RoutedEventArgs e)
         {
-            var addWindow = new BookAddWindow
+            var addWindow = new BookAddDialog
             {
                 Owner = this
             };
@@ -789,23 +788,9 @@ namespace MyAthenaeio.Views
 
         private async Task ViewBookDetails(Book book)
         {
-            Mouse.OverrideCursor = Cursors.Wait;
-
             try
             {
-                // Fetch full book details
-                string cleanedISBN = ISBNValidator.CleanISBN(book.ISBN);
-                Result<BookApiResponse> bookResult = await BookAPIService.FetchFullBookByISBN(cleanedISBN);
-
-                if (!bookResult.IsSuccess)
-                {
-                    MessageBox.Show($"Could not load book details: {bookResult.Error}",
-                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                // Open detail window
-                var detailWindow = new BookDetailWindow(bookResult.Value!)
+                var detailWindow = new BookDetailWindow(book)
                 {
                     Owner = this
                 };
@@ -819,8 +804,6 @@ namespace MyAthenaeio.Views
 
         private async void SearchBooks()
         {
-            Mouse.OverrideCursor = Cursors.Wait;
-
             try
             {
                 if (string.IsNullOrWhiteSpace(_searchText))

@@ -14,7 +14,6 @@
     StateChanged="Window_StateChanged"
     WindowStartupLocation="CenterScreen"
     mc:Ignorable="d">
-
     <Window.Resources>
         <ResourceDictionary Source="/Resources/Styles.xaml" />
     </Window.Resources>
@@ -120,34 +119,63 @@
                         Grid.Row="1"
                         AutoGenerateColumns="False"
                         ItemsSource="{Binding}"
-                        MouseDoubleClick="DataGrid_MouseDoubleClick">
+                        MouseDoubleClick="DataGrid_MouseDoubleClick"
+                        RowHeight="85">
+
                         <DataGrid.Columns>
+
+                            <!--  ✅ Cover Image with Placeholder Support  -->
+                            <DataGridTemplateColumn Width="80" Header="Cover">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border
+                                            Width="60"
+                                            Height="90"
+                                            Margin="5"
+                                            BorderBrush="#CCCCCC"
+                                            BorderThickness="1"
+                                            CornerRadius="2">
+                                            <Image
+                                                Source="{Binding CoverImageUrl, Converter={StaticResource BookCoverConverter}}"
+                                                Stretch="Uniform"
+                                                StretchDirection="DownOnly" />
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
                             <DataGridTextColumn
                                 Width="*"
                                 MinWidth="200"
                                 Binding="{Binding Title}"
                                 Header="Title" />
+
                             <DataGridTextColumn
                                 Width="200"
                                 Binding="{Binding AuthorsDisplay, Mode=OneWay}"
                                 Header="Authors"
                                 IsReadOnly="True" />
+
                             <DataGridTextColumn
                                 Width="120"
                                 Binding="{Binding ISBN}"
                                 Header="ISBN" />
+
                             <DataGridTextColumn
                                 Width="150"
                                 Binding="{Binding Publisher}"
                                 Header="Publisher" />
+
                             <DataGridTextColumn
                                 Width="120"
                                 Binding="{Binding PublicationYear}"
                                 Header="Published" />
+
                             <DataGridTextColumn
                                 Width="80"
-                                Binding="{Binding Copies.Count}"
+                                Binding="{Binding TotalCopies}"
                                 Header="Copies" />
+
                             <DataGridTemplateColumn Width="150" Header="Actions">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -158,6 +186,7 @@
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
+
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>

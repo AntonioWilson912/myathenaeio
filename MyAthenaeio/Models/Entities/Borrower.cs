@@ -19,6 +19,6 @@ namespace MyAthenaeio.Models.Entities
         public string? Notes { get; set; }
         public DateTime DateAdded { get; set; }
 
-        public List<Loan> Loans { get; set; } = [];
+        public ICollection<Loan> Loans { get; set; } = [];
     }
 }

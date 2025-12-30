@@ -7,7 +7,6 @@ namespace MyAthenaeio.Models.Entities
 {
     public class BookCopy
     {
-        [Key]
         public int Id { get; set; }
 
         public int BookId { get; set; }

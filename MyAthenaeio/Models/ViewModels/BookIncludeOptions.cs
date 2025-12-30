@@ -6,6 +6,9 @@
         public bool IncludeGenres { get; set; }
         public bool IncludeTags { get; set; }
         public bool IncludeCollections { get; set; }
+        public bool IncludeCopies { get; set; }
+        public bool IncludeLoans { get; set; }
+
         public bool ForceReload { get; set; }
 
         public static BookIncludeOptions Default => new()
@@ -27,6 +30,16 @@
         {
             IncludeAuthors = true,
             IncludeGenres = true
+        };
+
+        public static BookIncludeOptions Full => new()
+        {
+            IncludeAuthors = true,
+            IncludeGenres = true,
+            IncludeTags = true,
+            IncludeCollections = true,
+            IncludeCopies = true,
+            IncludeLoans = true
         };
     }
 }

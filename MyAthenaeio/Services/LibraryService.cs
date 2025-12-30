@@ -113,6 +113,14 @@ namespace MyAthenaeio.Services
         #region Books
 
         /// <summary>
+        /// Adds a new book to the library.
+        /// </summary>
+        public static async Task<Book> AddBookAsync(Book book)
+        {
+            return await AddBookAsync(book, []);
+        }
+
+        /// <summary>
         /// Adds a new book to the library with authors and optional categorization.
         /// </summary>
         public static async Task<Book> AddBookAsync(
@@ -527,12 +535,13 @@ namespace MyAthenaeio.Services
         /// <summary>
         /// Convenience method to add a collection by name and description.
         /// </summary>
-        public static async Task<Collection> AddCollectionAsync(string name, string? description = null)
+        public static async Task<Collection> AddCollectionAsync(string name, string? description = null, string? notes = null)
         {
             var collection = new Collection
             {
                 Name = name,
-                Description = description
+                Description = description,
+                Notes = notes
             };
             return await AddCollectionAsync(collection);
         }

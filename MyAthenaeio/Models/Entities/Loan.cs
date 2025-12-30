@@ -22,6 +22,6 @@ namespace MyAthenaeio.Models.Entities
         [Required]
         public Borrower Borrower { get; set; } = null!;
 
-        public List<Renewal> Renewals { get; set; } = [];
+        public ICollection<Renewal> Renewals { get; set; } = [];
     }
 }

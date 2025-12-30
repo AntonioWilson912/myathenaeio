@@ -1,17 +1,18 @@
 ﻿using System.Windows;
+using MyAthenaeio.Data;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Services;
 
 namespace MyAthenaeio.Views
 {
     /// <summary>
-    /// Interaction logic for BookDetailWindow.xaml
+    /// Interaction logic for ScannedBookDetailWindow.xaml
     /// </summary>
-    public partial class BookDetailWindow : Window
+    public partial class ScannedBookDetailWindow : Window
     {
         private BookApiResponse _book;
 
-        public BookDetailWindow(BookApiResponse book)
+        public ScannedBookDetailWindow(BookApiResponse book)
         {
             InitializeComponent();
             _book = book;
@@ -28,7 +29,7 @@ namespace MyAthenaeio.Views
             // Authors
             if (_book.Authors != null && _book.Authors.Count > 0)
             {
-                AuthorsText.Text = "by " + string.Join(", ", _book.Authors.Select(a => a.Name));
+                AuthorsText.Text = "by " + string.Join(", ", _book.Authors.ConvertAll(a => a.Name));
                 AuthorsList.ItemsSource = _book.Authors;
             }
             else
@@ -48,7 +49,7 @@ namespace MyAthenaeio.Views
             }
 
             // Cover
-            CoverImage.Source = _book.Cover ?? BookAPIService.CreatePlaceholderImage();
+            CoverImage.Source = _book.Cover ?? BookApiService.CreatePlaceholderImage();
 
             // Description
             if (!string.IsNullOrEmpty(_book.Description))

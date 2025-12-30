@@ -42,18 +42,11 @@ namespace MyAthenaeio.Data.Repositories
         {
             options ??= BookIncludeOptions.Default;
 
-            var (isbn10, isbn13) = ISBNValidator.GetBothISBNFormats(isbn);
-            var isbnsToCheck = new List<string>();
-
-            if (!string.IsNullOrEmpty(isbn10))
-                isbnsToCheck.Add(isbn10);
-            if (!string.IsNullOrEmpty(isbn13))
-                isbnsToCheck.Add(isbn13);
-
             var query = BuildQuery(_dbSet.AsQueryable(), options);
 
-            return await query.FirstOrDefaultAsync(book =>
-                isbnsToCheck.Any(searchIsbn => ISBNValidator.CleanISBN(book.ISBN) == searchIsbn));
+            isbn = ISBNValidator.CleanISBN(isbn);
+
+            return await query.FirstOrDefaultAsync(book => book.ISBN == isbn);
         }
 
         public async Task<List<Book>> SearchAsync(string query, BookIncludeOptions? options = null)
@@ -139,18 +132,11 @@ namespace MyAthenaeio.Data.Repositories
         {
             try
             {
-                // Check for existing book using both ISBN formats
-                var (isbn10, isbn13) = ISBNValidator.GetBothISBNFormats(book.ISBN);
-
-                var isbnsToCheck = new List<string>();
-                if (!string.IsNullOrEmpty(isbn10))
-                    isbnsToCheck.Add(isbn10);
-                if (!string.IsNullOrEmpty(isbn13))
-                    isbnsToCheck.Add(isbn13);
+                // Check for existing book
+                book.ISBN = ISBNValidator.CleanISBN(book.ISBN);
 
                 var existingBook = await _context.Books
-                    .FirstOrDefaultAsync(b => isbnsToCheck.Any(searchIsbn =>
-                        ISBNValidator.CleanISBN(b.ISBN) == searchIsbn));
+                    .FirstOrDefaultAsync(b => b.ISBN == book.ISBN);
 
                 if (existingBook != null)
                     throw new InvalidOperationException(
@@ -470,6 +456,13 @@ namespace MyAthenaeio.Data.Repositories
 
             if (options.IncludeCollections)
                 query = query.Include(b => b.Collections);
+
+            if (options.IncludeCopies)
+                query = query.Include(b => b.Copies);
+
+            if (options.IncludeLoans)
+                query = query.Include(b => b.Loans)
+                        .ThenInclude(l => l.Renewals);
 
             return query;
         }

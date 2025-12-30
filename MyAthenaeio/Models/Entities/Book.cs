@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyAthenaeio.Models.Entities
 {
@@ -34,7 +35,15 @@ namespace MyAthenaeio.Models.Entities
         public ICollection<Loan> Loans { get; set; } = [];
 
         // Computed properties
+        [NotMapped]
         public int TotalCopies => Copies.Count;
+
+        [NotMapped]
         public int AvailableCopies => Copies.Count(c => c.IsAvailable);
+
+        [NotMapped]
+        public string AuthorsDisplay => Authors.Any()
+            ? string.Join(", ", Authors.Select(a => a.Name))
+            : "Unknown Author";
     }
 }

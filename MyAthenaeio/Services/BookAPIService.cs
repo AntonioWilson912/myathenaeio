@@ -4,14 +4,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Windows.Media.Imaging;
 using System.Windows.Media;
-using Brushes = System.Windows.Media.Brushes;
 using MyAthenaeio.Utils;
 using MyAthenaeio.Models.DTOs;
 
 
 namespace MyAthenaeio.Services
 {
-    internal static class BookAPIService
+    internal static class BookApiService
     {
         private static HttpClient _bookClient = new();
         private const string _bookISBNUrlTemplate = "https://openlibrary.org/isbn/{0}.json";
