@@ -11,7 +11,6 @@ namespace MyAthenaeio.Views.Borrowers
     {
         private Borrower? _borrower;
         private readonly int _borrowerId;
-        private bool _changesMade = false;
 
         public BorrowerEditDialog(int borrowerId)
         {
@@ -19,14 +18,6 @@ namespace MyAthenaeio.Views.Borrowers
             _borrowerId = borrowerId;
 
             Loaded += async (s, e) => await LoadBorrowerData();
-
-            Closing += (s, e) =>
-            {
-                if (DialogResult == null && _changesMade)
-                {
-                    DialogResult = true;
-                }
-            };
         }
 
         private async Task LoadBorrowerData()
@@ -105,10 +96,11 @@ namespace MyAthenaeio.Views.Borrowers
 
                 await LibraryService.UpdateBorrowerAsync(borrowerToUpdate);
 
-                _changesMade = true;
-
                 MessageBox.Show("Borrower updated successfully!", "Success",
                     MessageBoxButton.OK, MessageBoxImage.Information);
+
+                DialogResult = true;
+                Close();
             }
             catch (Exception ex)
             {
@@ -119,8 +111,7 @@ namespace MyAthenaeio.Views.Borrowers
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            if (!_changesMade)
-                DialogResult = false;
+            DialogResult = false;
             Close();
         }
     }

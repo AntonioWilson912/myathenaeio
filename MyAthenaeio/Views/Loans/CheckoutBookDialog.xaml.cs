@@ -17,7 +17,6 @@ namespace MyAthenaeio.Views.Loans
         private BookCopy? _bookCopy;
         private readonly SettingsService _settingsService;
         private readonly ObservableCollection<Borrower> _borrowers;
-        private bool _changesMade = false;
 
         public CheckoutBookDialog(int bookCopyId)
         {
@@ -29,13 +28,6 @@ namespace MyAthenaeio.Views.Loans
             BorrowerComboBox.ItemsSource = _borrowers;
 
             Loaded += async (s, e) => await LoadDataAsync();
-            Closing += (s, e) =>
-            {
-                if (DialogResult == null && _changesMade)
-                {
-                    DialogResult = true;
-                }
-            };
         }
 
         private async Task LoadDataAsync()
@@ -237,8 +229,6 @@ namespace MyAthenaeio.Views.Loans
                         await LibraryService.UpdateLoanAsync(loanToUpdate);
                     }
                 }
-
-                _changesMade = true;
 
                 MessageBox.Show(
                     $"Book successfully checked out to {selectedBorrower.Name}!\n\n" +

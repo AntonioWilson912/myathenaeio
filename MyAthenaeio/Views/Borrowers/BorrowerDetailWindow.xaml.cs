@@ -85,7 +85,7 @@ namespace MyAthenaeio.Views.Borrowers
 
         private void Edit_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new BorrowerEditDialog(_borrower.Id) { Owner = this };
+            var dialog = new BorrowerEditDialog(_borrowerId) { Owner = this };
 
             if (dialog.ShowDialog() == true)
             {

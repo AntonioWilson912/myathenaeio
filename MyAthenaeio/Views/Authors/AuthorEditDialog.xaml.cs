@@ -16,7 +16,6 @@ namespace MyAthenaeio.Views.Authors
         private Author? _author;
         private readonly HttpClient _httpClient;
         private bool _hasOLKey;
-        private bool _changesMade = false;
 
         public bool HasOLKey
         {
@@ -39,14 +38,6 @@ namespace MyAthenaeio.Views.Authors
             _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
 
             Loaded += async (s, e) => await LoadAuthorData();
-
-            Closing += (s, e) =>
-            {
-                if (DialogResult == null && _changesMade)
-                {
-                    DialogResult = true;
-                }
-            };
         }
 
         private async Task LoadAuthorData()
@@ -324,7 +315,8 @@ namespace MyAthenaeio.Views.Authors
                 MessageBox.Show("Author information updated successfully!", "Success",
                     MessageBoxButton.OK, MessageBoxImage.Information);
 
-                _changesMade = true;
+                DialogResult = true;
+                Close();
             }
             catch (Exception ex)
             {
@@ -335,8 +327,7 @@ namespace MyAthenaeio.Views.Authors
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            if (!_changesMade)
-                DialogResult = false;
+            DialogResult = false;
             Close();
         }
 

@@ -10,7 +10,7 @@ namespace MyAthenaeio.Views
     /// </summary>
     public partial class ScannedBookDetailWindow : Window
     {
-        private BookApiResponse _book;
+        private readonly BookApiResponse _book;
 
         public ScannedBookDetailWindow(BookApiResponse book)
         {

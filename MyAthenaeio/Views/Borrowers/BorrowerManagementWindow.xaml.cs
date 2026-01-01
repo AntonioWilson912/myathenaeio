@@ -11,7 +11,6 @@ namespace MyAthenaeio.Views.Borrowers
     public partial class BorrowerManagementWindow : Window
     {
         private readonly ObservableCollection<Borrower> _borrowers;
-        private bool _isClosing = false;
         private bool _changesMade = false;
 
         public BorrowerManagementWindow()
@@ -28,11 +27,6 @@ namespace MyAthenaeio.Views.Borrowers
                     DialogResult = true;
                 }
             };
-        }
-
-        public async void RefreshData()
-        {
-            await SearchBorrowersAsync();
         }
 
         private async void Search_Click(object sender, RoutedEventArgs e)
@@ -66,8 +60,6 @@ namespace MyAthenaeio.Views.Borrowers
 
         private async Task SearchBorrowersAsync()
         {
-            if (_isClosing) return;
-
             try
             {
                 // Get search term
@@ -112,12 +104,9 @@ namespace MyAthenaeio.Views.Borrowers
             }
             catch (Exception ex)
             {
-                if (!_isClosing)
-                {
-                    MessageBox.Show($"Error searching borrowers: {ex.Message}",
-                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    System.Diagnostics.Debug.WriteLine($"Search error: {ex}");
-                }
+                MessageBox.Show($"Error searching borrowers: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"Search error: {ex}");
             }
         }
 
@@ -127,8 +116,8 @@ namespace MyAthenaeio.Views.Borrowers
 
             if (dialog.ShowDialog() == true)
             {
+                _ = SearchBorrowersAsync();
                 _changesMade = true;
-                RefreshData();
             }
         }
 
@@ -141,7 +130,7 @@ namespace MyAthenaeio.Views.Borrowers
 
             if (dialog.ShowDialog() == true)
             {
-                RefreshData();
+                _ = SearchBorrowersAsync();
                 _changesMade = true;
             }
         }
@@ -155,7 +144,7 @@ namespace MyAthenaeio.Views.Borrowers
 
             if (detailsWindow.ShowDialog() == true)
             {
-                RefreshData();
+                _ = SearchBorrowersAsync();
                 _changesMade = true;
             }
         }
@@ -168,7 +157,7 @@ namespace MyAthenaeio.Views.Borrowers
 
                 if (detailsWindow.ShowDialog() == true)
                 {
-                    RefreshData();
+                    _ = SearchBorrowersAsync();
                     _changesMade = true;
                 }
             }
@@ -179,12 +168,6 @@ namespace MyAthenaeio.Views.Borrowers
             if (!_changesMade)
                 DialogResult = false;
             Close();
-        }
-
-        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
-        {
-            _isClosing = true;
-            base.OnClosing(e);
         }
     }
 }

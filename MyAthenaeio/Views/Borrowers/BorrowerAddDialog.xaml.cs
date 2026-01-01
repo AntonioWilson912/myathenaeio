@@ -11,19 +11,9 @@ namespace MyAthenaeio.Views.Borrowers
     /// </summary>
     public partial class BorrowerAddDialog : Window
     {
-        private bool _changesMade = false;
-
         public BorrowerAddDialog()
         {
             InitializeComponent();
-
-            Closing += (s, e) =>
-            {
-                if (DialogResult == null && _changesMade)
-                {
-                    DialogResult = true;
-                }
-            };
         }
 
         private async void Add_Click(object sender, RoutedEventArgs e)
@@ -117,8 +107,6 @@ namespace MyAthenaeio.Views.Borrowers
                 };
 
                 await LibraryService.AddBorrowerAsync(borrower);
-
-                _changesMade = true;
 
                 MessageBox.Show("Borrower added successfully!", "Success",
                     MessageBoxButton.OK, MessageBoxImage.Information);

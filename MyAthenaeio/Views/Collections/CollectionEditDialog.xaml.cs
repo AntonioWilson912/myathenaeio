@@ -13,7 +13,7 @@ namespace MyAthenaeio.Views.Collections
     public partial class CollectionEditDialog : Window
     {
         private readonly int _collectionId;
-        private ObservableCollection<Book> _collectionBooks;
+        private readonly ObservableCollection<Book> _collectionBooks;
         private bool _changesMade = false;
 
         public CollectionEditDialog(int collectionId)
@@ -149,9 +149,11 @@ namespace MyAthenaeio.Views.Collections
 
                 await LibraryService.UpdateCollectionAsync(collectionToUpdate);
 
-                _changesMade = true;
 
                 MessageBox.Show("Collection successfully updated!", "Changes Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                _changesMade = true;
+                Close();
             }
             catch (InvalidOperationException ex)
             {

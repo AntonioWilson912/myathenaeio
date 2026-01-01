@@ -11,20 +11,12 @@ namespace MyAthenaeio.Views.BookCopies
     {
         private readonly int _bookCopyId;
         private BookCopy? _bookCopy;
-        private bool _changesMade = false;
         public BookCopyEditDialog(int bookCopyId)
         {
             InitializeComponent();
             _bookCopyId = bookCopyId;
 
             Loaded += async (s, e) => await LoadBookCopyData();
-            Closing += (s, e) =>
-            {
-                if (DialogResult == null && _changesMade)
-                {
-                    DialogResult = true;
-                }
-            };
         }
 
         private async Task LoadBookCopyData()
@@ -74,7 +66,8 @@ namespace MyAthenaeio.Views.BookCopies
                 MessageBox.Show("Book copy updated successfully!", "Success",
                     MessageBoxButton.OK, MessageBoxImage.Information);
 
-                _changesMade = true;
+                DialogResult = true;
+                Close();
             }
             catch (Exception ex)
             {
@@ -85,8 +78,6 @@ namespace MyAthenaeio.Views.BookCopies
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            if (!_changesMade)
-                DialogResult = false;
             Close();
         }
     }

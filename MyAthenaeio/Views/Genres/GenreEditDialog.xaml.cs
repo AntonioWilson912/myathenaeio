@@ -139,10 +139,12 @@ namespace MyAthenaeio.Views.Genres
 
                 genreToUpdate.Name = name;
                 await LibraryService.UpdateGenreAsync(genreToUpdate);
-                _changesMade = true;
 
                 MessageBox.Show("Genre successfully updated!", "Changes Saved",
                     MessageBoxButton.OK, MessageBoxImage.Information);
+
+                _changesMade = true;
+                Close();
             }
             catch (InvalidOperationException ex)
             {

@@ -12,7 +12,7 @@ namespace MyAthenaeio.Views.Tags
     public partial class TagEditDialog : Window
     {
         private readonly int _tagId;
-        private ObservableCollection<Book> _tagBooks;
+        private readonly ObservableCollection<Book> _tagBooks;
         private bool _changesMade = false;
 
         public TagEditDialog(int tagId)
@@ -143,9 +143,11 @@ namespace MyAthenaeio.Views.Tags
                 tagToUpdate.Name = name;
                 await LibraryService.UpdateTagAsync(tagToUpdate);
 
-                _changesMade = true;
 
                 MessageBox.Show("Tag successfully updated!", "Changes Saved", MessageBoxButton.OK, MessageBoxImage.Information);
+                
+                _changesMade = true;
+                Close();
             }
             catch (InvalidOperationException ex)
             {
