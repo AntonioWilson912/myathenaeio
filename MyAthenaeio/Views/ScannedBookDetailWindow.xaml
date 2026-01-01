@@ -21,12 +21,7 @@
         </Grid.RowDefinitions>
 
         <!--  Header  -->
-        <Border
-            Grid.Row="0"
-            Padding="20"
-            Background="{StaticResource RusticAccent}"
-            BorderBrush="{StaticResource RusticBorder}"
-            BorderThickness="0,0,0,2">
+        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
             <Grid>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />

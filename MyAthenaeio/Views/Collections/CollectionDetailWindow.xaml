@@ -5,9 +5,109 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:MyAthenaeio.Views.Collections"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="CollectionDetailWindow"
-    Width="800"
-    Height="450"
+    Title="Collection Details"
+    Width="600"
+    Height="500"
+    WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
-    <Grid />
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/Styles.xaml" />
+    </Window.Resources>
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
+            <Grid>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="Collection Information" />
+                <Button
+                    HorizontalAlignment="Right"
+                    Click="Edit_Click"
+                    Content="Edit Collection" />
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="200" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Label
+                        Grid.Row="0"
+                        Grid.Column="0"
+                        Content="Name:" />
+                    <TextBlock
+                        x:Name="NameTextBlock"
+                        Grid.Row="0"
+                        Grid.Column="1"
+                        FontWeight="Bold" />
+
+                    <Label
+                        Grid.Row="1"
+                        Grid.Column="0"
+                        Content="Description:" />
+                    <TextBlock
+                        x:Name="DescriptionTextBlock"
+                        Grid.Row="1"
+                        Grid.Column="1"
+                        FontWeight="Bold"
+                        TextWrapping="Wrap" />
+
+                    <Label
+                        Grid.Row="2"
+                        Grid.Column="0"
+                        Content="Notes:" />
+                    <TextBlock
+                        x:Name="NotesTextBlock"
+                        Grid.Row="2"
+                        Grid.Column="1"
+                        FontWeight="Bold"
+                        TextWrapping="Wrap" />
+                </Grid>
+
+                <GroupBox Margin="5" Header="Books in Library">
+                    <ListBox
+                        x:Name="BooksListBox"
+                        Height="200"
+                        MouseDoubleClick="BooksListBox_MouseDoubleClick">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock FontWeight="Bold" Text="{Binding Title}" />
+                                    <TextBlock
+                                        FontSize="11"
+                                        Foreground="Gray"
+                                        Text="{Binding PublicationYear, StringFormat='Published: {0}'}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Button
+            Grid.Row="2"
+            Width="100"
+            Margin="0,15,0,0"
+            HorizontalAlignment="Right"
+            Click="Close_Click"
+            Content="Close" />
+    </Grid>
 </Window>

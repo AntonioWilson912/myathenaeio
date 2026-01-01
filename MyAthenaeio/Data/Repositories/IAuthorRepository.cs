@@ -11,6 +11,7 @@ namespace MyAthenaeio.Data.Repositories
 
         // Author-specific queries
         Task<List<Author>> SearchAsync(string query, AuthorIncludeOptions? options = null);
+        Task<List<Author>> GetByBookAsync(int bookId, AuthorIncludeOptions? options = null);
         Task<Author?> GetByNameAsync(string name);
         Task<Author?> GetByOpenLibraryKeyAsync(string openLibraryKey);
 

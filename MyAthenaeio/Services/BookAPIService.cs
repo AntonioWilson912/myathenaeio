@@ -7,19 +7,18 @@ using System.Windows.Media;
 using MyAthenaeio.Utils;
 using MyAthenaeio.Models.DTOs;
 
-
 namespace MyAthenaeio.Services
 {
     internal static class BookApiService
     {
-        private static HttpClient _bookClient = new();
+        private static readonly HttpClient _bookClient = new();
         private const string _bookISBNUrlTemplate = "https://openlibrary.org/isbn/{0}.json";
         private const string _coverUrlTemplate = "https://covers.openlibrary.org/b/isbn/{0}-M.jpg";
         private const string _authorURLTemplate = "https://openlibrary.org/authors/{0}.json";
         private const string _workURLTemplate = "https://openlibrary.org/works/{0}.json";
-        private static BitmapImage? _placeholderImage;
+        private static BitmapSource? _placeholderImage;
 
-        private static Dictionary<string, BitmapImage> _coverCache = new();
+        private static readonly Dictionary<string, BitmapSource> _coverCache = [];
 
         public static async Task<Result<BookApiResponse>> FetchBookByISBN(string isbn)
         {
@@ -59,7 +58,7 @@ namespace MyAthenaeio.Services
                 }
 
                 // Fetch cover
-                BitmapImage? cover = null;
+                BitmapSource? cover = null;
                 var coverResult = await FetchCoverByISBN(isbn);
                 if (coverResult.IsSuccess)
                 {
@@ -150,7 +149,6 @@ namespace MyAthenaeio.Services
                 }
 
                 // Get the work and description
-                // There should technically only be one work per ISBN
                 string description = string.Empty;
                 if (parsedJson["works"] is JArray worksArray)
                 {
@@ -172,7 +170,7 @@ namespace MyAthenaeio.Services
                 }
 
                 // Authors array
-                List<AuthorInfo> authorInfos = new();
+                List<AuthorInfo> authorInfos = [];
                 if (parsedJson["authors"] is JArray authorsArray)
                 {
                     foreach (var author in authorsArray)
@@ -188,14 +186,12 @@ namespace MyAthenaeio.Services
                         {
                             authorInfos.Add(authorResult.Value);
                         }
-
-                        // Not critical if author fetch fails
                     }
                 }
 
                 // Fetch cover
-                BitmapImage? coverImage = null;
-                Result<BitmapImage> coverResult = await FetchCoverByISBN(isbn);
+                BitmapSource? coverImage = null;
+                Result<BitmapSource> coverResult = await FetchCoverByISBN(isbn);
                 if (coverResult.IsSuccess)
                 {
                     coverImage = coverResult.Value;
@@ -338,12 +334,12 @@ namespace MyAthenaeio.Services
             return string.Format(_coverUrlTemplate, isbn);
         }
 
-        public static async Task<Result<BitmapImage>> FetchCoverByISBN(string isbn)
+        public static async Task<Result<BitmapSource>> FetchCoverByISBN(string isbn)
         {
             // Check cache first
             if (_coverCache.TryGetValue(isbn, out var cachedCover))
             {
-                return Result<BitmapImage>.Success(cachedCover);
+                return Result<BitmapSource>.Success(cachedCover);
             }
 
             try
@@ -353,9 +349,8 @@ namespace MyAthenaeio.Services
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    return Result<BitmapImage>.Failure($"Cover API returned {response.StatusCode}");
+                    return Result<BitmapSource>.Failure($"Cover API returned {response.StatusCode}");
                 }
-
 
                 byte[] imageBytes = await response.Content.ReadAsByteArrayAsync();
 
@@ -364,7 +359,7 @@ namespace MyAthenaeio.Services
                 {
                     var placeholder = CreatePlaceholderImage();
                     _coverCache[isbn] = placeholder;
-                    return Result<BitmapImage>.Success(placeholder);
+                    return Result<BitmapSource>.Success(placeholder);
                 }
 
                 BitmapImage bmImg = new();
@@ -375,29 +370,35 @@ namespace MyAthenaeio.Services
                     bmImg.CacheOption = BitmapCacheOption.OnLoad;
                     bmImg.StreamSource = memoryStream;
                     bmImg.EndInit();
-                    bmImg.Freeze();
                 }
+
+                // Freeze after the using block when stream is closed
+                bmImg.Freeze();
 
                 // Check pixel dimensions
                 if (bmImg.PixelWidth < 10 || bmImg.PixelHeight < 10)
                 {
                     var placeholder = CreatePlaceholderImage();
                     _coverCache[isbn] = placeholder;
-                    return Result<BitmapImage>.Success(placeholder);
+                    return Result<BitmapSource>.Success(placeholder);
                 }
 
-                // Cache the result
+                // Cache the result (now frozen)
                 _coverCache[isbn] = bmImg;
 
-                return Result<BitmapImage>.Success(bmImg);
+                return Result<BitmapSource>.Success(bmImg);
             }
             catch (HttpRequestException ex)
             {
-                return Result<BitmapImage>.Failure($"Network error: {ex.Message}");
+                return Result<BitmapSource>.Failure($"Network error: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                return Result<BitmapSource>.Failure($"Unexpected error: {ex.Message}");
             }
         }
 
-        public static BitmapImage CreatePlaceholderImage()
+        public static BitmapSource CreatePlaceholderImage()
         {
             if (_placeholderImage != null)
                 return _placeholderImage;
@@ -417,7 +418,6 @@ namespace MyAthenaeio.Services
                     24,
                     Brushes.DarkGray,
                     1.0);
-
                 context.DrawText(text, new System.Windows.Point(
                     (width - text.Width) / 2,
                     (height - text.Height) / 2));
@@ -425,22 +425,9 @@ namespace MyAthenaeio.Services
 
             var renderBitmap = new RenderTargetBitmap(width, height, 96, 96, PixelFormats.Pbgra32);
             renderBitmap.Render(visual);
+            renderBitmap.Freeze();
 
-            var bitmapImage = new BitmapImage();
-            var encoder = new PngBitmapEncoder();
-            encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
-
-            using var stream = new MemoryStream();
-            encoder.Save(stream);
-            stream.Position = 0;
-
-            bitmapImage.BeginInit();
-            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-            bitmapImage.StreamSource = stream;
-            bitmapImage.EndInit();
-            bitmapImage.Freeze(); // Must freeze for caching
-
-            _placeholderImage = bitmapImage;
+            _placeholderImage = renderBitmap;
             return _placeholderImage;
         }
     }

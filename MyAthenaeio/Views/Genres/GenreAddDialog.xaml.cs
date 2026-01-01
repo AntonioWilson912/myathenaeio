@@ -1,22 +1,33 @@
 ﻿using MyAthenaeio.Models.Entities;
+using MyAthenaeio.Models.ViewModels;
 using MyAthenaeio.Services;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
 namespace MyAthenaeio.Views.Genres
 {
+    /// <summary>
+    /// Interaction logic for GenreAddDialog.xaml
+    /// </summary>
     public partial class GenreAddDialog : Window
     {
-        private readonly List<Genre> _existingBookGenres;
-        private List<Genre> _allGenres;
+        private readonly int _bookId;
+        private readonly ObservableCollection<Genre> _existingBookGenres;
+        private readonly ObservableCollection<Genre> _allGenres;
+        private readonly ObservableCollection<Genre> _filteredGenres;
         public Genre? SelectedGenre { get; private set; }
 
-        public GenreAddDialog(List<Genre> existingBookGenres)
+        public GenreAddDialog(int bookId)
         {
             InitializeComponent();
-            _existingBookGenres = existingBookGenres;
-            _allGenres = new List<Genre>();
+            _bookId = bookId;
+            _existingBookGenres = [];
+            _allGenres = [];
+            _filteredGenres = [];
+
+            ExistingGenresListBox.ItemsSource = _filteredGenres;
 
             Loaded += async (s, e) => await LoadGenresAsync();
             NameTextBox.TextChanged += (s, e) => UpdateAddButtonState();
@@ -24,9 +35,44 @@ namespace MyAthenaeio.Views.Genres
 
         private async Task LoadGenresAsync()
         {
-            _allGenres = await LibraryService.GetAllGenresAsync();
-            _allGenres.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
-            FilterGenres();
+            try
+            {
+                Mouse.OverrideCursor = Cursors.Wait;
+
+                // Load book's existing genres
+                var book = await LibraryService.GetBookByIdAsync(_bookId, BookIncludeOptions.WithGenres);
+                if (book == null)
+                {
+                    MessageBox.Show("Book not found.", "Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    Close();
+                    return;
+                }
+
+                _existingBookGenres.Clear();
+                foreach (var genre in book.Genres)
+                {
+                    _existingBookGenres.Add(genre);
+                }
+
+                // Load all genres
+                var allGenres = await LibraryService.GetAllGenresAsync();
+                _allGenres.Clear();
+                foreach (var genre in allGenres.OrderBy(g => g.Name))
+                {
+                    _allGenres.Add(genre);
+                }
+                
+                FilterGenres();
+            } catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading genres: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Close();
+            } finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
 
         private void FilterGenres(string? searchTerm = null)
@@ -43,12 +89,22 @@ namespace MyAthenaeio.Views.Genres
                 filtered = filtered.Where(g => g.Name.ToLower().Contains(lowerSearch));
             }
 
-            ExistingGenresListBox.ItemsSource = filtered.ToList();
+            _filteredGenres.Clear();
+
+            foreach (var genre in filtered)
+            {
+                _filteredGenres.Add(genre);
+            }
         }
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             FilterGenres(SearchTextBox.Text);
+        }
+
+        private void ExistingGenresListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            AddButton.IsEnabled = ExistingGenresListBox.SelectedItem != null;
         }
 
         private void ExistingGenresListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -73,6 +129,13 @@ namespace MyAthenaeio.Views.Genres
 
         private async void Add_Click(object sender, RoutedEventArgs e)
         {
+            // Check if we're on "Existing Genres" tab and one is selected
+            if (ExistingGenresListBox.SelectedItem is Genre selectedGenre)
+            {
+                SelectGenre(selectedGenre);
+                return;
+            }
+
             var name = NameTextBox.Text?.Trim();
 
             if (string.IsNullOrEmpty(name))

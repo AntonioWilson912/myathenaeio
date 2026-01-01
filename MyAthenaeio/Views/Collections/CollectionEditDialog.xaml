@@ -5,9 +5,145 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:MyAthenaeio.Views.Collections"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="CollectionEditDialog"
-    Width="800"
-    Height="450"
+    Title="Edit Collection"
+    Width="700"
+    Height="600"
+    WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
-    <Grid />
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/Styles.xaml" />
+    </Window.Resources>
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
+            <TextBlock
+                FontSize="18"
+                FontWeight="Bold"
+                Foreground="White"
+                Text="Edit Collection Information" />
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Basic Information">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Label
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Content="Name:" />
+                        <TextBox
+                            x:Name="NameTextBox"
+                            Grid.Row="0"
+                            Grid.Column="1" />
+
+                        <Label
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Content="Description:" />
+                        <TextBox
+                            x:Name="DescriptionTextBox"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Height="80"
+                            AcceptsReturn="True"
+                            TextWrapping="Wrap" />
+
+                        <Label
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Content="Notes:" />
+                        <TextBox
+                            x:Name="NotesTextBox"
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Height="80"
+                            AcceptsReturn="True"
+                            TextWrapping="Wrap" />
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Margin="0,10,0,0" Header="Books in Collection">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <DataGrid
+                            x:Name="BooksDataGrid"
+                            Grid.Row="0"
+                            Height="300"
+                            AutoGenerateColumns="False"
+                            IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding Title}"
+                                    Header="Title" />
+                                <DataGridTextColumn
+                                    Width="200"
+                                    Binding="{Binding AuthorsDisplay}"
+                                    Header="Authors" />
+                                <DataGridTextColumn
+                                    Width="100"
+                                    Binding="{Binding PublicationYear}"
+                                    Header="Year" />
+                                <DataGridTemplateColumn Width="80" Header="Action">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button
+                                                Padding="5,2"
+                                                Click="RemoveBook_Click"
+                                                Content="Remove"
+                                                Tag="{Binding}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock
+                            x:Name="NoBooksText"
+                            Grid.Row="0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontStyle="Italic"
+                            Foreground="Gray"
+                            Text="No books in this collection"
+                            Visibility="Collapsed" />
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,15,0,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                Width="100"
+                Click="Save_Click"
+                Content="Save" />
+            <Button
+                Width="100"
+                Click="Cancel_Click"
+                Content="Cancel" />
+        </StackPanel>
+    </Grid>
 </Window>

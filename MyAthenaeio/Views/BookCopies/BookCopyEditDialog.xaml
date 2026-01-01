@@ -1,0 +1,137 @@
+﻿<Window
+    x:Class="MyAthenaeio.Views.BookCopies.BookCopyEditDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MyAthenaeio.Views.BookCopies"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:system="clr-namespace:System;assembly=mscorlib"
+    Title="Edit Book Copy"
+    Width="800"
+    Height="450"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Resources/Styles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <x:Array x:Key="CopyConditions" Type="system:String">
+                <system:String>New</system:String>
+                <system:String>Fine</system:String>
+                <system:String>Very Good</system:String>
+                <system:String>Good</system:String>
+                <system:String>Fair</system:String>
+                <system:String>Poor</system:String>
+            </x:Array>
+        </ResourceDictionary>
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{DynamicResource RusticBorderStyle}">
+            <TextBlock
+                FontSize="20"
+                FontWeight="Bold"
+                Foreground="White"
+                Text="Edit Book Copy Information" />
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Copy Information">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Label
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Content="Copy Number:" />
+                        <TextBox
+                            x:Name="CopyNumberTextBox"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Background="LightGray"
+                            IsReadOnly="True"
+                            ToolTip="Copy number cannot be changed" />
+
+                        <Label
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Content="Acquisition Date:" />
+                        <DatePicker
+                            x:Name="AcquisitionDatePicker"
+                            Grid.Row="1"
+                            Grid.Column="1" />
+
+                        <Label
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Content="Condition:" />
+                        <ComboBox
+                            x:Name="ConditionComboBox"
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            ItemsSource="{StaticResource CopyConditions}"
+                            SelectedIndex="0" />
+
+                        <Label
+                            Grid.Row="3"
+                            Grid.Column="0"
+                            Content="Notes:" />
+                        <TextBox
+                            x:Name="NotesTextBox"
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Height="80"
+                            AcceptsReturn="True"
+                            TextWrapping="Wrap"
+                            VerticalScrollBarVisibility="Auto" />
+                    </Grid>
+                </GroupBox>
+
+                <Border
+                    Margin="0,10,0,0"
+                    Padding="10"
+                    Background="LightYellow"
+                    BorderBrush="Orange"
+                    BorderThickness="1">
+                    <TextBlock TextWrapping="Wrap">
+                        <Run FontWeight="Bold">Note:</Run>
+                        <LineBreak />
+                        <Run>Copy number is automatically generated and cannot be changed.</Run>
+                    </TextBlock>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,15,0,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                Width="100"
+                Click="Save_Click"
+                Content="Save" />
+            <Button
+                Width="100"
+                Click="Cancel_Click"
+                Content="Cancel" />
+        </StackPanel>
+    </Grid>
+</Window>

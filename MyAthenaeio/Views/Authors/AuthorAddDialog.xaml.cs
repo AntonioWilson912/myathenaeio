@@ -6,6 +6,7 @@ using System.Net.Http;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using System.Windows.Media.Imaging;
 
 namespace MyAthenaeio.Views.Authors
 {
@@ -27,6 +28,7 @@ namespace MyAthenaeio.Views.Authors
             _allAuthors = new List<Author>();
 
             Loaded += async (s, e) => await LoadAuthorsAsync();
+            NameTextBox.TextChanged += (s, e) => UpdateAddButtonState();
         }
 
         private async Task LoadAuthorsAsync()
@@ -57,9 +59,20 @@ namespace MyAthenaeio.Views.Authors
             ExistingAuthorsListBox.ItemsSource = filtered.ToList();
         }
 
+        private void UpdateAddButtonState()
+        {
+            AddButton.IsEnabled = !string.IsNullOrWhiteSpace(NameTextBox.Text) ||
+                                   ExistingAuthorsListBox.SelectedItem != null;
+        }
+
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             FilterAuthors(SearchTextBox.Text);
+        }
+
+        private void ExistingAuthorsListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            UpdateAddButtonState();
         }
 
         private void ExistingAuthorsListBox_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -68,6 +81,67 @@ namespace MyAthenaeio.Views.Authors
             {
                 SelectAuthor(author);
             }
+        }
+
+        private void PhotoUrlTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            // Enable/disable View Photo button based on whether URL exists
+            ViewPhotoButton.IsEnabled = !string.IsNullOrWhiteSpace(PhotoUrlTextBox.Text);
+        }
+
+        private void ViewPhoto_Click(object sender, RoutedEventArgs e)
+        {
+            var photoUrl = PhotoUrlTextBox.Text?.Trim();
+
+            if (string.IsNullOrWhiteSpace(photoUrl))
+            {
+                MessageBox.Show("No photo URL available.", "No Photo",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // Create a simple window to display the photo
+            var photoWindow = new Window
+            {
+                Title = $"Author Photo - {NameTextBox.Text}",
+                Width = 400,
+                Height = 500,
+                WindowStartupLocation = WindowStartupLocation.CenterOwner,
+                Owner = this,
+                ResizeMode = ResizeMode.CanResize
+            };
+
+            var grid = new Grid();
+
+            var image = new Image
+            {
+                Stretch = System.Windows.Media.Stretch.Uniform,
+                Margin = new Thickness(10)
+            };
+
+            try
+            {
+                var bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri(photoUrl, UriKind.Absolute);
+                bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                bitmap.EndInit();
+
+                if (bitmap.CanFreeze)
+                    bitmap.Freeze();
+
+                image.Source = bitmap;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load photo: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            grid.Children.Add(image);
+            photoWindow.Content = grid;
+            photoWindow.ShowDialog();
         }
 
         private async void FetchOLData_Click(object sender, RoutedEventArgs e)
@@ -105,7 +179,7 @@ namespace MyAthenaeio.Views.Authors
             }
 
             // Validate format
-            if (!olKey.StartsWith("OL") || !olKey.EndsWith("A"))
+            if (!olKey.StartsWith("OL") || !olKey.EndsWith('A'))
             {
                 MessageBox.Show("Invalid Open Library author key format. Author keys should start with 'OL' and end with 'A' (e.g., OLA12345A).",
                     "Invalid Format", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -123,10 +197,15 @@ namespace MyAthenaeio.Views.Authors
                 {
                     NameTextBox.Text = authorData.Name;
                     BioTextBox.Text = authorData.Bio;
-                    //BirthDateTextBox.Text = authorData.Item3;
-                    //PhotoUrlTextBox.Text = authorData.Item4;
+                    BirthDatePicker.SelectedDate = authorData.BirthDate;
 
-                    AddButton.IsEnabled = !string.IsNullOrWhiteSpace(NameTextBox.Text);
+                    // Only update photo URL if it's currently empty
+                    if (string.IsNullOrWhiteSpace(PhotoUrlTextBox.Text) && !string.IsNullOrEmpty(authorData.PhotoUrl))
+                    {
+                        PhotoUrlTextBox.Text = authorData.PhotoUrl;
+                    }
+
+                    UpdateAddButtonState();
 
                     MessageBox.Show("Author information successfully fetched from Open Library!",
                         "Success", MessageBoxButton.OK, MessageBoxImage.Information);
@@ -164,8 +243,7 @@ namespace MyAthenaeio.Views.Authors
 
                 var name = json["name"]?.ToString() ?? "";
                 var bio = "";
-                //var birthDate = "";
-                //var photoUrl = "";
+                var photoUrl = "";
 
                 // Get bio
                 if (json["bio"] is JToken bioToken)
@@ -180,21 +258,29 @@ namespace MyAthenaeio.Views.Authors
                     }
                 }
 
-                //// Get birth date
-                //birthDate = DateNormalizer.NormalizeDate(json["birth_date"]?.ToString());
+                // Get birth date
+                string? birthDateStr = DateNormalizer.NormalizeDate(json["birth_date"]?.ToString());
 
-                //// Get photo
-                //if (json["photos"] is JArray photos && photos.Count > 0)
-                //{
-                //    var photoId = photos[0].ToString();
-                //    photoUrl = $"https://covers.openlibrary.org/a/id/{photoId}-M.jpg";
-                //}
+                // Get photo
+                if (json["photos"] is JArray photos && photos.Count > 0)
+                {
+                    var photoId = photos[0].ToString();
+                    photoUrl = $"https://covers.openlibrary.org/a/id/{photoId}-M.jpg";
+                }
 
-                return new AuthorInfo()
+                var authorInfo = new AuthorInfo
                 {
                     Name = name,
-                    Bio = bio
+                    Bio = bio,
+                    PhotoUrl = photoUrl
                 };
+
+                if (!string.IsNullOrEmpty(birthDateStr) && DateTime.TryParse(birthDateStr, out var parsedDate))
+                {
+                    authorInfo.BirthDate = parsedDate;
+                }
+
+                return authorInfo;
             }
             catch
             {
@@ -211,6 +297,13 @@ namespace MyAthenaeio.Views.Authors
 
         private async void Add_Click(object sender, RoutedEventArgs e)
         {
+            // Check if we're on "Existing Author" tab and one is selected
+            if (ExistingAuthorsListBox.SelectedItem is Author selectedAuthor)
+            {
+                SelectAuthor(selectedAuthor);
+                return;
+            }
+
             var name = NameTextBox.Text?.Trim();
 
             if (string.IsNullOrEmpty(name))
@@ -267,7 +360,9 @@ namespace MyAthenaeio.Views.Authors
                 {
                     Name = name,
                     OpenLibraryKey = olKey,
-                    Bio = string.IsNullOrWhiteSpace(BioTextBox.Text) ? null : BioTextBox.Text.Trim()
+                    Bio = string.IsNullOrWhiteSpace(BioTextBox.Text) ? null : BioTextBox.Text.Trim(),
+                    BirthDate = BirthDatePicker.SelectedDate,
+                    PhotoUrl = string.IsNullOrWhiteSpace(PhotoUrlTextBox.Text) ? null : PhotoUrlTextBox.Text.Trim()
                 };
 
                 await LibraryService.AddAuthorAsync(newAuthor);

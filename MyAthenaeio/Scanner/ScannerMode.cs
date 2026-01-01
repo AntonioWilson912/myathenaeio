@@ -1,6 +1,6 @@
 ﻿namespace MyAthenaeio.Scanner
 {
-    internal enum ScannerMode
+    public enum ScannerMode
     {
         Disabled,         // App minimized, scanner off
         FocusedFieldOnly, // App active

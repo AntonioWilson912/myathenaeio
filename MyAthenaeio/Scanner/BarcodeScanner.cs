@@ -4,7 +4,7 @@ using MyAthenaeio.Utils;
 
 namespace MyAthenaeio.Scanner
 {
-    internal class BarcodeScanner
+    public class BarcodeScanner
     {
         private StringBuilder _barcodeBuffer = new StringBuilder();
         private DateTime _lastKeyPress = DateTime.Now;

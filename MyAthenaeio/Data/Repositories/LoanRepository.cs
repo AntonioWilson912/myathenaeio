@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
+using MyAthenaeio.Services;
 using MyAthenaeio.Utils;
 
 namespace MyAthenaeio.Data.Repositories
@@ -62,10 +63,9 @@ namespace MyAthenaeio.Data.Repositories
                 .Include(l => l.Renewals)
                 .ToListAsync();
 
-            return loans
+            return [.. loans
                 .Where(l => l.GetEffectiveDueDate() < today)
-                .OrderBy(l => l.GetEffectiveDueDate())
-                .ToList();
+                .OrderBy(l => l.GetEffectiveDueDate())];
         }
 
         public async Task<List<Loan>> GetDueSoonAsync(int daysAhead = 7, LoanIncludeOptions? options = null)
@@ -81,14 +81,13 @@ namespace MyAthenaeio.Data.Repositories
                 .Include(l => l.Renewals)
                 .ToListAsync();
 
-            return loans
+            return [.. loans
                 .Where(l =>
                 {
                     var dueDate = l.GetEffectiveDueDate();
                     return dueDate >= today && dueDate <= targetDate;
                 })
-                .OrderBy(l => l.GetEffectiveDueDate())
-                .ToList();
+                .OrderBy(l => l.GetEffectiveDueDate())];
         }
 
         public async Task<List<Loan>> GetByBookAsync(int bookId, LoanIncludeOptions? options = null)
@@ -131,48 +130,51 @@ namespace MyAthenaeio.Data.Repositories
 
         #region Loan Operations
 
-        public async Task<Loan> CheckoutAsync(int bookId, int borrowerId, int loanPeriodDays = 14)
+        public async Task<Loan> CheckoutAsync(int bookCopyId, int borrowerId, int maxRenewals, int loanPeriodDays)
         {
-            // Check if book exists
-            var book = await _context.Books.FindAsync(bookId);
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
+            // Check if book copy exists and load the book
+            var bookCopy = await _context.BookCopies
+                .Include(bc => bc.Book)
+                .FirstOrDefaultAsync(bc => bc.Id == bookCopyId)
+                ?? throw new InvalidOperationException("Book copy does not exist.");
+
+            // Check if book copy is available
+            if (!bookCopy.IsAvailable)
+                throw new InvalidOperationException("This copy is currently unavailable.");
 
             // Check if borrower exists
-            var borrower = await _context.Borrowers.FindAsync(borrowerId);
-            if (borrower == null)
-                throw new InvalidOperationException("Borrower does not exist.");
+            var borrower = await _context.Borrowers.FindAsync(borrowerId)
+                ?? throw new InvalidOperationException("Borrower does not exist.");
 
-            // Check availability
-            var availableCopy = await _context.BookCopies
-                .FirstOrDefaultAsync(bc => bc.BookId == bookId && bc.IsAvailable);
+            // Check if borrower already has an active loan for this book
+            var hasActiveLoan = await _context.Loans
+                .AnyAsync(l => l.BorrowerId == borrowerId
+                            && l.BookId == bookCopy.BookId
+                            && !l.ReturnDate.HasValue);
 
-            if (availableCopy == null)
-                throw new InvalidOperationException($"No copies of '{book.Title}' are currently available.");
+            if (hasActiveLoan)
+                throw new InvalidOperationException("Borrower already has an active loan for this book.");
 
             // Create loan
             var loan = new Loan
             {
-                BookId = bookId,
-                BookCopyId = availableCopy.Id,
+                BookId = bookCopy.BookId,
+                BookCopyId = bookCopy.Id,
                 BorrowerId = borrowerId,
                 CheckoutDate = DateTime.UtcNow,
-                DueDate = DateTime.UtcNow.AddDays(loanPeriodDays)
+                DueDate = DateTime.UtcNow.AddDays(loanPeriodDays),
+                MaxRenewalsAllowed = maxRenewals,
+                LoanPeriodDays = loanPeriodDays,
+                Book = bookCopy.Book,
+                BookCopy = bookCopy,
+                Borrower = borrower
             };
 
             // Mark copy as unavailable
-            availableCopy.IsAvailable = false;
+            bookCopy.IsAvailable = false;
 
             _context.Loans.Add(loan);
             await _context.SaveChangesAsync();
-
-            // Load relationships for return
-            await _context.Entry(loan)
-                .Reference(l => l.Book)
-                .LoadAsync();
-            await _context.Entry(loan)
-                .Reference(l => l.Borrower)
-                .LoadAsync();
 
             return loan;
         }
@@ -183,10 +185,8 @@ namespace MyAthenaeio.Data.Repositories
                 .Include(l => l.Book)
                 .Include(l => l.BookCopy)
                 .Include(l => l.Borrower)
-                .FirstOrDefaultAsync(l => l.Id == loanId);
-
-            if (loan == null)
-                throw new InvalidOperationException("Loan does not exist.");
+                .FirstOrDefaultAsync(l => l.Id == loanId)
+                ?? throw new InvalidOperationException("Loan does not exist.");
 
             if (loan.ReturnDate != null)
                 throw new InvalidOperationException("This book has already been returned.");
@@ -199,27 +199,25 @@ namespace MyAthenaeio.Data.Repositories
             return loan;
         }
 
-        public async Task<Renewal> RenewAsync(int loanId, int additionalDays = 14, int maxRenewals = 3)
+        public async Task<Renewal> RenewAsync(int loanId)
         {
             var loan = await _context.Loans
                 .Include(l => l.Renewals)
                 .Include(l => l.Book)
-                .FirstOrDefaultAsync(l => l.Id == loanId);
-
-            if (loan == null)
-                throw new InvalidOperationException("Loan does not exist.");
+                .FirstOrDefaultAsync(l => l.Id == loanId)
+                ?? throw new InvalidOperationException("Loan does not exist.");
 
             if (loan.ReturnDate != null)
                 throw new InvalidOperationException("Cannot renew a returned loan.");
 
-            if (loan.Renewals.Count >= maxRenewals)
-                throw new InvalidOperationException($"Maximum renewals ({maxRenewals}) reached for this loan.");
+            if (loan.RenewalsRemaining == 0)
+                throw new InvalidOperationException($"Maximum renewals ({loan.MaxRenewalsAllowed}) reached for this loan.");
 
             var renewal = new Renewal
             {
                 LoanId = loanId,
                 RenewalDate = DateTime.UtcNow,
-                NewDueDate = loan.GetEffectiveDueDate().AddDays(additionalDays)
+                NewDueDate = loan.GetEffectiveDueDate().AddDays(loan.LoanPeriodDays)
             };
 
             _context.Renewals.Add(renewal);
@@ -236,10 +234,8 @@ namespace MyAthenaeio.Data.Repositories
         {
             var loan = await _context.Loans
                 .Include(l => l.Renewals)
-                .FirstOrDefaultAsync(l => l.Id == loanId);
-
-            if (loan == null)
-                throw new InvalidOperationException("Loan does not exist.");
+                .FirstOrDefaultAsync(l => l.Id == loanId)
+                ?? throw new InvalidOperationException("Loan does not exist.");
 
             return loan.GetEffectiveDueDate();
         }
@@ -248,10 +244,8 @@ namespace MyAthenaeio.Data.Repositories
         {
             var loan = await _context.Loans
                 .Include(l => l.Renewals)
-                .FirstOrDefaultAsync(l => l.Id == loanId);
-
-            if (loan == null)
-                throw new InvalidOperationException("Loan does not exist.");
+                .FirstOrDefaultAsync(l => l.Id == loanId)
+                ?? throw new InvalidOperationException("Loan does not exist.");
 
             if (loan.ReturnDate != null)
                 return false;
@@ -263,10 +257,8 @@ namespace MyAthenaeio.Data.Repositories
         {
             var loan = await _context.Loans
                 .Include(l => l.Renewals)
-                .FirstOrDefaultAsync(l => l.Id == loanId);
-
-            if (loan == null)
-                throw new InvalidOperationException("Loan does not exist.");
+                .FirstOrDefaultAsync(l => l.Id == loanId)
+                ?? throw new InvalidOperationException("Loan does not exist.");
 
             if (loan.ReturnDate != null)
                 return 0;
@@ -284,24 +276,28 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task UpdateAsync(Loan loan)
         {
-            throw new NotSupportedException(
-                "Direct loan updates are not supported. Use CheckoutAsync, ReturnAsync, or RenewAsync instead.");
+            await _context.SaveChangesAsync();
         }
 
         #endregion
 
         #region Helper Methods
 
-        private IQueryable<Loan> BuildQuery(IQueryable<Loan> query, LoanIncludeOptions options)
+        private static IQueryable<Loan> BuildQuery(IQueryable<Loan> query, LoanIncludeOptions options)
         {
-            if (options.IncludeBook)
+            if (options.IncludeBookCopy)
             {
-                query = query.Include(l => l.Book);
+                query = query.Include(l => l.BookCopy);
 
-                if (options.IncludeBookAuthors)
+                if (options.IncludeBook)
                 {
-                    query = query.Include(l => l.Book)
-                                .ThenInclude(b => b.Authors);
+                    query = query.Include(l => l.Book);
+
+                    if (options.IncludeBookAuthors)
+                    {
+                        query = query.Include(l => l.Book)
+                                    .ThenInclude(b => b.Authors);
+                    }
                 }
             }
 

@@ -18,9 +18,9 @@ namespace MyAthenaeio.Data.Repositories
         Task<List<Loan>> GetActiveLoansByBorrowerAsync(int borrowerId, LoanIncludeOptions? options = null);
 
         // Loan operations
-        Task<Loan> CheckoutAsync(int bookId, int borrowerId, int loanPeriodDays = 14);
+        Task<Loan> CheckoutAsync(int bookCopyId, int borrowerId, int maxRenewals = 2, int loanPeriodDays = 14);
         Task<Loan> ReturnAsync(int loanId);
-        Task<Renewal> RenewAsync(int loanId, int additionalDays = 14, int maxRenewals = 3);
+        Task<Renewal> RenewAsync(int loanId);
 
         // Loan calculations
         Task<DateTime> GetEffectiveDueDateAsync(int loanId);

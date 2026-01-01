@@ -91,6 +91,9 @@ namespace MyAthenaeio.Migrations
                     b.Property<string>("Bio")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -100,12 +103,16 @@ namespace MyAthenaeio.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PhotoUrl")
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
 
                     b.HasIndex("OpenLibraryKey")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("OpenLibraryKey IS NOT NULL");
 
                     b.ToTable("Authors");
                 });
@@ -171,6 +178,11 @@ namespace MyAthenaeio.Migrations
                     b.Property<int>("BookId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Condition")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("New");
+
                     b.Property<string>("CopyNumber")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -205,6 +217,9 @@ namespace MyAthenaeio.Migrations
                     b.Property<string>("Email")
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -311,6 +326,12 @@ namespace MyAthenaeio.Migrations
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("LoanPeriodDays")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MaxRenewalsAllowed")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Notes")
                         .HasColumnType("TEXT");
 
@@ -343,6 +364,9 @@ namespace MyAthenaeio.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Notes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("OldDueDate")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("RenewalDate")

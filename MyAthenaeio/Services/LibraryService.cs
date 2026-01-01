@@ -1,4 +1,5 @@
-﻿using MyAthenaeio.Data.Repositories;
+﻿using MyAthenaeio.Data;
+using MyAthenaeio.Data.Repositories;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
@@ -61,6 +62,15 @@ namespace MyAthenaeio.Services
         {
             using var repos = new RepositoryFactory();
             return await repos.Authors.GetByNameAsync(name);
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        public static async Task<List<Author>> GetAuthorsByBookAsync(int _bookId,  AuthorIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Authors.GetByBookAsync(_bookId, options);
         }
 
         /// <summary>
@@ -133,6 +143,34 @@ namespace MyAthenaeio.Services
             using var repos = new RepositoryFactory();
             return await repos.Books.AddAsync(book, authorInfos, genreIds, tagIds, collectionIds);
         }
+
+        /// <summary>
+        /// Adds a genre to a book
+        /// </summary>
+        public static async Task AddGenreToBookAsync(int bookId, int genreId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.AddGenreAsync(bookId, genreId);
+        }
+
+        /// <summary>
+        /// Adds a tag to a book
+        /// </summary>
+        public static async Task AddTagToBookAsync(int bookId, int tagId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.AddTagAsync(bookId, tagId);
+        }
+
+        /// <summary>
+        /// Adds a collection to a book
+        /// </summary>
+        public static async Task AddCollectionToBookAsync(int bookId, int collectionId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.AddCollectionAsync(bookId, collectionId);
+        }
+
 
         /// <summary>
         /// Gets all books in the library.
@@ -276,6 +314,33 @@ namespace MyAthenaeio.Services
         }
 
         /// <summary>
+        /// Removes a genre from a book
+        /// </summary>
+        public static async Task RemoveGenreFromBookAsync(int bookId, int genreId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.RemoveGenreAsync(bookId, genreId);
+        }
+
+        /// <summary>
+        /// Removes a tag from a book
+        /// </summary>
+        public static async Task RemoveTagFromBookAsync(int bookId, int tagId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.RemoveTagAsync(bookId, tagId);
+        }
+
+        /// <summary>
+        /// Removes a collection from a book
+        /// </summary>
+        public static async Task RemoveCollectionFromBookAsync(int bookId, int collectionId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.RemoveCollectionAsync(bookId, collectionId);
+        }
+
+        /// <summary>
         /// Deletes a book from the library.
         /// </summary>
         public static async Task DeleteBookAsync(int id)
@@ -322,10 +387,10 @@ namespace MyAthenaeio.Services
         /// <summary>
         /// Adds a new copy of a book.
         /// </summary>
-        public static async Task<BookCopy> AddBookCopyAsync(int bookId, string? condition = null, string? notes = null)
+        public static async Task<BookCopy> AddBookCopyAsync(int bookId, BookCopy copy)
         {
             using var repos = new RepositoryFactory();
-            return await repos.BookCopies.CreateCopyAsync(bookId, condition, notes);
+            return await repos.BookCopies.AddCopyAsync(bookId, copy);
         }
 
         /// <summary>
@@ -349,10 +414,10 @@ namespace MyAthenaeio.Services
         /// <summary>
         /// Gets a book copy by ID.
         /// </summary>
-        public static async Task<BookCopy?> GetBookCopyByIdAsync(int id)
+        public static async Task<BookCopy?> GetBookCopyByIdAsync(int id, BookCopyIncludeOptions? options = null)
         {
             using var repos = new RepositoryFactory();
-            return await repos.BookCopies.GetByIdAsync(id);
+            return await repos.BookCopies.GetByIdAsync(id, options);
         }
 
         /// <summary>
@@ -427,6 +492,15 @@ namespace MyAthenaeio.Services
         {
             using var repos = new RepositoryFactory();
             return await repos.Borrowers.GetAllAsync(options);
+        }
+
+        /// <summary>
+        /// Gets all active borrowers.
+        /// </summary>
+        public static async Task<List<Borrower>> GetActiveBorrowersAsync(BorrowerIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetAllActiveAsync(options);
         }
 
         /// <summary>
@@ -704,10 +778,10 @@ namespace MyAthenaeio.Services
         /// <summary>
         /// Checks out a book to a borrower.
         /// </summary>
-        public static async Task<Loan> CheckoutBookAsync(int bookId, int borrowerId, int loanPeriodDays = 14)
+        public static async Task<Loan> CheckoutBookAsync(int bookCopyId, int borrowerId, int maxRenewals = 2, int loanPeriodDays = 14)
         {
             using var repos = new RepositoryFactory();
-            return await repos.Loans.CheckoutAsync(bookId, borrowerId, loanPeriodDays);
+            return await repos.Loans.CheckoutAsync(bookCopyId, borrowerId, maxRenewals, loanPeriodDays);
         }
 
         /// <summary>
@@ -722,10 +796,10 @@ namespace MyAthenaeio.Services
         /// <summary>
         /// Renews a loan.
         /// </summary>
-        public static async Task<Renewal> RenewLoanAsync(int loanId, int additionalDays = 14, int maxRenewals = 3)
+        public static async Task<Renewal> RenewLoanAsync(int loanId)
         {
             using var repos = new RepositoryFactory();
-            return await repos.Loans.RenewAsync(loanId, additionalDays, maxRenewals);
+            return await repos.Loans.RenewAsync(loanId);
         }
 
         /// <summary>
@@ -807,6 +881,15 @@ namespace MyAthenaeio.Services
         {
             using var repos = new RepositoryFactory();
             return await repos.Loans.GetDaysOverdueAsync(loanId);
+        }
+
+        /// <summary>
+        /// Updates a loan entity.
+        /// </summary>
+        public static async Task UpdateLoanAsync(Loan loan)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Loans.UpdateAsync(loan);
         }
 
         #endregion

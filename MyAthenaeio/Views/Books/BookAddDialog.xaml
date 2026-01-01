@@ -8,7 +8,7 @@
     Title="Add a Book"
     Width="800"
     Height="750"
-    WindowStartupLocation="CenterScreen"
+    WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
 
     <Window.Resources>
@@ -22,12 +22,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border
-            Grid.Row="0"
-            Margin="0,0,0,15"
-            Padding="15"
-            Background="{StaticResource RusticAccent}"
-            CornerRadius="5">
+        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
             <TextBlock
                 FontSize="20"
                 FontWeight="Bold"

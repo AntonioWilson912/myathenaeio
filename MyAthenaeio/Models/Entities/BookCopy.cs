@@ -17,6 +17,7 @@ namespace MyAthenaeio.Models.Entities
         public DateTime AcquisitionDate { get; set; } = DateTime.Now;
 
         public bool IsAvailable { get; set; } = true;
+        public string? Condition { get; set; } = "New";
 
         [MaxLength(100)]
         public string? Notes { get; set; }

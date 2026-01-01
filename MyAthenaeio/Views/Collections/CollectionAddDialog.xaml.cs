@@ -1,9 +1,7 @@
 ﻿using MyAthenaeio.Models.Entities;
+using MyAthenaeio.Models.ViewModels;
 using MyAthenaeio.Services;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -12,15 +10,21 @@ namespace MyAthenaeio.Views.Collections
 {
     public partial class CollectionAddDialog : Window
     {
-        private readonly List<Collection> _existingBookCollections;
-        private List<Collection> _allCollections;
+        private readonly int _bookId;
+        private readonly ObservableCollection<Collection> _existingBookCollections;
+        private readonly ObservableCollection<Collection> _allCollections;
+        private readonly ObservableCollection<Collection> _filteredCollections;
         public Collection? SelectedCollection { get; private set; }
 
-        public CollectionAddDialog(List<Collection> existingBookCollections)
+        public CollectionAddDialog(int bookId)
         {
             InitializeComponent();
-            _existingBookCollections = existingBookCollections;
-            _allCollections = new List<Collection>();
+            _bookId = bookId;
+            _existingBookCollections = [];
+            _allCollections = [];
+            _filteredCollections = [];
+
+            ExistingCollectionsDataGrid.ItemsSource = _filteredCollections;
 
             Loaded += async (s, e) => await LoadCollectionsAsync();
             NameTextBox.TextChanged += (s, e) => UpdateAddButtonState();
@@ -28,9 +32,46 @@ namespace MyAthenaeio.Views.Collections
 
         private async Task LoadCollectionsAsync()
         {
-            _allCollections = await LibraryService.GetAllCollectionsAsync();
-            _allCollections.Sort((a, b) => string.Compare(a.Name, b.Name, StringComparison.OrdinalIgnoreCase));
-            FilterCollections();
+            try
+            {
+                Mouse.OverrideCursor = Cursors.Wait;
+
+                // Load book's existing collections
+                var book = await LibraryService.GetBookByIdAsync(_bookId, BookIncludeOptions.WithGenres);
+                if (book == null)
+                {
+                    MessageBox.Show("Book not found.", "Error",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    Close();
+                    return;
+                }
+
+                _existingBookCollections.Clear();
+                foreach (var collection in book.Collections)
+                {
+                    _existingBookCollections.Add(collection);
+                }
+
+                // Load all collections
+                var allCollections = await LibraryService.GetAllCollectionsAsync();
+                _allCollections.Clear();
+                foreach (var collection in allCollections.OrderBy(g => g.Name))
+                {
+                    _allCollections.Add(collection);
+                }
+
+                FilterCollections();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error loading collections: {ex.Message}", "Error",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                Close();
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
 
         private void FilterCollections(string? searchTerm = null)
@@ -49,12 +90,22 @@ namespace MyAthenaeio.Views.Collections
                     (c.Description != null && c.Description.ToLower().Contains(lowerSearch)));
             }
 
-            ExistingCollectionsDataGrid.ItemsSource = filtered.ToList();
+            _filteredCollections.Clear();
+
+            foreach (var collection in filtered)
+            {
+                _filteredCollections.Add(collection);
+            }
         }
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             FilterCollections(SearchTextBox.Text);
+        }
+
+        private void ExistingCollectionsDataGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            AddButton.IsEnabled = ExistingCollectionsDataGrid.SelectedItem != null;
         }
 
         private void ExistingCollectionsDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -79,6 +130,13 @@ namespace MyAthenaeio.Views.Collections
 
         private async void Add_Click(object sender, RoutedEventArgs e)
         {
+            // Check if we're on "Existing Collection" tab and one is selected
+            if (ExistingCollectionsDataGrid.SelectedItem is Collection selectedCollection)
+            {
+                SelectCollection(selectedCollection);
+                return;
+            }
+
             var name = NameTextBox.Text?.Trim();
 
             if (string.IsNullOrEmpty(name))
@@ -115,6 +173,7 @@ namespace MyAthenaeio.Views.Collections
                     NotesTextBox.Text?.Trim()
                 );
 
+
                 SelectCollection(newCollection);
             }
             catch (InvalidOperationException ex)
@@ -131,7 +190,6 @@ namespace MyAthenaeio.Views.Collections
 
         private void Cancel_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = false;
             Close();
         }
     }

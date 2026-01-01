@@ -1,29 +1,33 @@
 ﻿using System.Windows;
 using System.Windows.Input;
-using MessageBox = System.Windows.MessageBox;
+using MyAthenaeio.Services;
 
 namespace MyAthenaeio.Scanner
 {
-    internal class ScannerManager
+    public class ScannerManager : IDisposable
     {
         private ScannerMode _currentMode = ScannerMode.Disabled;
         private GlobalKeyboardHook? _globalHook;
         private BarcodeScanner _scanner;
         private bool _backgroundModeEnabled = false;
         private bool _isShowingDialog = false;
+        private readonly SettingsService _settingsService;
 
         public event EventHandler<string>? BarcodeScanned;
         public bool BackgroundModeEnabled => _backgroundModeEnabled;
 
-        public ScannerManager()
+        public ScannerManager(SettingsService settingsService)
         {
+            _settingsService = settingsService;
             _scanner = new BarcodeScanner();
             _scanner.BarcodeScanned += (s, barcode) => BarcodeScanned?.Invoke(this, barcode);
+
+            // Initialize background mode from settings
+            _backgroundModeEnabled = _settingsService.Settings.BackgroundScanningEnabled;
         }
 
         public void SetMode(ScannerMode mode)
         {
-            // Don't change mode if showing permission dialog
             if (_isShowingDialog)
                 return;
 
@@ -37,7 +41,6 @@ namespace MyAthenaeio.Scanner
                 if (!_backgroundModeEnabled)
                 {
                     ShowBackgroundModeDialog();
-                    // Don't set _currentMode here - will be set in dialog callback
                     return;
                 }
                 SetupGlobalHook();
@@ -51,7 +54,6 @@ namespace MyAthenaeio.Scanner
 
         public void ProcessKey(Key key)
         {
-            // For focused field mode
             if (_currentMode == ScannerMode.FocusedFieldOnly)
                 _scanner.OnKeyPress(key);
         }
@@ -62,7 +64,6 @@ namespace MyAthenaeio.Scanner
                 return;
 
             _isShowingDialog = true;
-
             var result = MessageBox.Show(
                 "Background scanning mode requires monitoring keyboard input " +
                 "when the app is minimized.\n\n" +
@@ -79,6 +80,8 @@ namespace MyAthenaeio.Scanner
             if (result == MessageBoxResult.Yes)
             {
                 _backgroundModeEnabled = true;
+                _settingsService.Settings.BackgroundScanningEnabled = true;
+                _settingsService.SaveSettings();
                 SetupGlobalHook();
                 _currentMode = ScannerMode.BackgroundService;
             }

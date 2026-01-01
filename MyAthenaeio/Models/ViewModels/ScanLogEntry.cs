@@ -6,7 +6,7 @@ namespace MyAthenaeio.Models.ViewModels
 {
     public class ScanLogEntry : INotifyPropertyChanged
     {
-        private BitmapImage? _cover;
+        private BitmapSource? _cover;
         private bool _isInLibary;
         private int? _bookId;
 
@@ -17,7 +17,7 @@ namespace MyAthenaeio.Models.ViewModels
         public string Source { get; set; } = string.Empty;
 
         [JsonIgnore]
-        public BitmapImage? Cover
+        public BitmapSource? Cover
         {
             get => _cover;
             set

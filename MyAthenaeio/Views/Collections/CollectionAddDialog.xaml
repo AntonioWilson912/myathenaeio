@@ -8,6 +8,7 @@
     Title="Add Collection to Book"
     Width="600"
     Height="500"
+    WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
     <Window.Resources>
         <ResourceDictionary Source="/Resources/Styles.xaml" />
@@ -20,12 +21,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border
-            Grid.Row="0"
-            Margin="0,0,0,15"
-            Padding="15"
-            Background="{StaticResource RusticAccent}"
-            CornerRadius="5">
+        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
             <TextBlock
                 FontSize="18"
                 FontWeight="Bold"
@@ -52,6 +48,7 @@
                         AutoGenerateColumns="False"
                         IsReadOnly="True"
                         MouseDoubleClick="ExistingCollectionsDataGrid_MouseDoubleClick"
+                        SelectionChanged="ExistingCollectionsDataGrid_SelectionChanged"
                         SelectionMode="Single">
                         <DataGrid.Columns>
                             <DataGridTextColumn

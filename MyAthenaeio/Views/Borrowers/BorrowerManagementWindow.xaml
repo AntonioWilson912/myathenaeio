@@ -1,0 +1,194 @@
+﻿<Window
+    x:Class="MyAthenaeio.Views.Borrowers.BorrowerManagementWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MyAthenaeio.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Borrower Management"
+    Width="1100"
+    Height="700"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/Styles.xaml" />
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
+            <Grid>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="Borrower Management" />
+                <Button
+                    HorizontalAlignment="Right"
+                    Click="AddBorrower_Click"
+                    Content="Add New Borrower" />
+            </Grid>
+        </Border>
+
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0" Margin="0,0,0,10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox
+                    x:Name="SearchTextBox"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    FontSize="16"
+                    KeyDown="SearchTextBox_KeyDown" />
+                <TextBlock
+                    Grid.Column="0"
+                    Margin="15,0"
+                    VerticalAlignment="Center"
+                    FontSize="16"
+                    Foreground="Gray"
+                    IsHitTestVisible="False"
+                    Text="Search by name, email, or phone...">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Text, ElementName=SearchTextBox}" Value="">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <ComboBox
+                    x:Name="StatusFilterComboBox"
+                    Grid.Column="1"
+                    Width="120"
+                    Margin="5,0"
+                    SelectedIndex="0"
+                    SelectionChanged="StatusFilterComboBox_SelectionChanged">
+                    <ComboBoxItem>All</ComboBoxItem>
+                    <ComboBoxItem>Active Only</ComboBoxItem>
+                    <ComboBoxItem>Inactive Only</ComboBoxItem>
+                </ComboBox>
+
+                <ComboBox
+                    x:Name="OverdueFilterComboBox"
+                    Grid.Column="2"
+                    Width="150"
+                    Margin="5,0"
+                    SelectedIndex="0"
+                    SelectionChanged="OverdueFilterComboBox_SelectionChanged">
+                    <ComboBoxItem>All Borrowers</ComboBoxItem>
+                    <ComboBoxItem>With Overdue Books</ComboBoxItem>
+                    <ComboBoxItem>No Overdue Books</ComboBoxItem>
+                </ComboBox>
+
+                <Button
+                    Grid.Column="3"
+                    Width="100"
+                    Click="Search_Click"
+                    Content="Search" />
+            </Grid>
+
+            <DataGrid
+                x:Name="BorrowersDataGrid"
+                Grid.Row="1"
+                AutoGenerateColumns="False"
+                MouseDoubleClick="BorrowersDataGrid_MouseDoubleClick"
+                SelectionMode="Single">
+                <DataGrid.Columns>
+                    <DataGridTextColumn
+                        Width="150"
+                        Binding="{Binding Name}"
+                        Header="Name" />
+                    <DataGridTextColumn
+                        Width="200"
+                        Binding="{Binding Email}"
+                        Header="Email" />
+                    <DataGridTextColumn
+                        Width="100"
+                        Binding="{Binding Phone}"
+                        Header="Phone" />
+                    <DataGridTextColumn
+                        Width="120"
+                        Binding="{Binding DateAdded, StringFormat='{}{0:yyyy-MM-dd}'}"
+                        Header="Registered" />
+                    <DataGridTextColumn
+                        Width="80"
+                        Binding="{Binding ActiveLoansCount}"
+                        Header="Active Loans" />
+                    <DataGridTextColumn
+                        Width="80"
+                        Binding="{Binding OverdueLoansCount}"
+                        Header="Overdue">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasOverdueLoans}" Value="True">
+                                        <Setter Property="Foreground" Value="Red" />
+                                        <Setter Property="FontWeight" Value="Bold" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                    <DataGridTextColumn
+                        Width="80"
+                        Binding="{Binding TotalLoansCount}"
+                        Header="Total Loans" />
+                    <DataGridCheckBoxColumn
+                        Width="50"
+                        Binding="{Binding IsActive}"
+                        Header="Active"
+                        IsReadOnly="True" />
+                    <DataGridTemplateColumn Width="*" Header="Actions">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal">
+                                    <Button
+                                        Margin="2"
+                                        Padding="5,2"
+                                        Click="EditBorrower_Click"
+                                        Content="Edit"
+                                        Tag="{Binding}" />
+                                    <Button
+                                        Margin="2"
+                                        Padding="5,2"
+                                        Click="ViewDetails_Click"
+                                        Content="View Details"
+                                        Tag="{Binding}" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <Button
+            Grid.Row="2"
+            Width="100"
+            Margin="0,15,0,0"
+            HorizontalAlignment="Right"
+            Click="Close_Click"
+            Content="Close" />
+    </Grid>
+</Window>

@@ -12,7 +12,7 @@
 
         public static AuthorIncludeOptions None => new();
 
-        public static AuthorIncludeOptions BooksOnly => new()
+        public static AuthorIncludeOptions WithBooks => new()
         {
             IncludeBooks = true
         };

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
+using System.Windows;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 using MyAthenaeio.Services;
@@ -19,13 +21,19 @@ namespace MyAthenaeio.Converters
                     image.UriSource = new Uri(url, UriKind.Absolute);
                     image.DecodePixelWidth = 100; // Thumbnail size for performance
                     image.CacheOption = BitmapCacheOption.OnLoad;
+                    image.CreateOptions = BitmapCreateOptions.IgnoreColorProfile;
                     image.EndInit();
-                    image.Freeze();
+
+                    // Freeze on UI thread before returning
+                    if (image.CanFreeze)
+                        image.Freeze();
+
                     return image;
                 }
-                catch
+                catch (Exception ex)
                 {
-                    // If loading fails, return placeholder
+                    Debug.WriteLine($"Error loading cover: {ex.Message}");
+                    // Return placeholder on error
                     return BookApiService.CreatePlaceholderImage();
                 }
             }

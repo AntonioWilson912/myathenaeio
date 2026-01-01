@@ -8,6 +8,7 @@ namespace MyAthenaeio.Data.Repositories
         // Override base methods with include options
         Task<Borrower?> GetByIdAsync(int id, BorrowerIncludeOptions? options = null);
         Task<List<Borrower>> GetAllAsync(BorrowerIncludeOptions? options = null);
+        Task<List<Borrower>> GetAllActiveAsync(BorrowerIncludeOptions? options = null);
 
         // Borrower-specific queries
         Task<List<Borrower>> SearchAsync(string query, BorrowerIncludeOptions? options = null);

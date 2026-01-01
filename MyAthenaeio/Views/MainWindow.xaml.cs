@@ -12,6 +12,7 @@ using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
 using MyAthenaeio.Views.Books;
+using System.Diagnostics;
 
 namespace MyAthenaeio.Views
 {
@@ -23,10 +24,11 @@ namespace MyAthenaeio.Views
         private readonly ScannerManager _scannerManager;
         private readonly TrayIconManager _trayIconManager;
         private readonly ObservableCollection<ScanLogEntry> _scanLog;
+        internal readonly SettingsService _settingsService;
         private int _scanCount = 0;
 
         private readonly HashSet<string> _loadingCovers = [];
-        private readonly SemaphoreSlim _coverLoadSemaphore = new(3); // Limit concurrent cover loads
+        private readonly SemaphoreSlim _coverLoadSemaphore = new(3);
 
         private readonly ObservableCollection<Book> _books;
         private string _searchText = "";
@@ -56,36 +58,123 @@ namespace MyAthenaeio.Views
             ScanLogList.ItemsSource = _scanLog;
 
             _books = [];
+            BooksDataGrid.ItemsSource = _books;
 
-            _scannerManager = new ScannerManager();
+            _settingsService = new SettingsService();
+            _scannerManager = new ScannerManager(_settingsService);
             _scannerManager.BarcodeScanned += OnBarcodeScanned;
 
             // Initialize system tray
             _trayIconManager = new TrayIconManager(_scannerManager);
 
             // Set initial mode when window loads
-            Loaded += (s, e) =>
+            Loaded += async (s, e) =>
             {
                 _scannerManager.SetMode(ScannerMode.FocusedFieldOnly);
                 ScannerInputField.Focus();
-                UpdateCurrentModeText();
-                _ = LoadBooks();
+                await LoadBooks();
             };
 
-            // Handle minimize to tray behavior
+            // Handle window state changes
             StateChanged += Window_StateChanged;
-
-            // Load saved book data
-            LoadBookData();
-
-            // Load saved scan data
-            LoadScanData();
-
-            // Register closing event
+            Activated += Window_Activated;
+            Deactivated += Window_Deactivated;
             Closing += Window_Closing;
+
+            // Load saved data
+            LoadBookData();
+            LoadScanData();
         }
 
-        private void ScannerInputField_PreviewKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+        #region Menu Event Handlers
+
+        private void ExportLibrary_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Library export funcitonality coming soon!", "That Is Unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void ImportLibrary_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Library import funcitonality coming soon!", "That Is Unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        private void Exit_Click(object sender, RoutedEventArgs e)
+        {
+            SaveScanData();
+            Close();
+        }
+
+        private void ManageBorrowers_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new Borrowers.BorrowerManagementWindow { Owner = this };
+            window.ShowDialog();
+        }
+
+        private void ManageGenres_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new Genres.GenreManagementWindow { Owner = this };
+            if (window.ShowDialog() == true)
+            {
+                LoadBookData();
+            }
+        }
+
+        private void ManageTags_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new Tags.TagManagementWindow { Owner = this };
+            if (window.ShowDialog() == true)
+            {
+                LoadBookData();
+            }
+        }
+
+        private void ManageCollections_Click(object sender, RoutedEventArgs e)
+        {
+            var window = new Collections.CollectionManagementWindow { Owner = this };
+            if (window.ShowDialog() == true)
+            {
+                LoadBookData();
+            }
+        }
+
+        private void Settings_Click(object sender, RoutedEventArgs e)
+        {
+            var settingsDialog = new SettingsDialog(_settingsService) { Owner = this };
+
+            if (settingsDialog.ShowDialog() == true)
+            {
+                // Settings were saved, scanner manager will handle mode changes
+                // based on current window state
+                if (WindowState == WindowState.Minimized &&
+                    _settingsService.Settings.BackgroundScanningEnabled)
+                {
+                    _scannerManager.SetMode(ScannerMode.BackgroundService);
+                }
+            }
+        }
+
+        private void ViewHelp_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show("Help documentation coming soon!", "Help",
+                MessageBoxButton.OK, MessageBoxImage.Information);
+        }
+
+        private void About_Click(object sender, RoutedEventArgs e)
+        {
+            MessageBox.Show(
+                "myAthenaeio - Book Scanner & Library Manager\n\n" +
+                "Version 1.0\n\n" +
+                "© 2025",
+                "About",
+                MessageBoxButton.OK,
+                MessageBoxImage.Information);
+        }
+
+        #endregion
+
+        #region Scanner Input Handling
+
+        private void ScannerInputField_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             // Handle manual input
             if (e.Key == Key.Enter || e.Key == Key.Return)
@@ -101,6 +190,15 @@ namespace MyAthenaeio.Views
             {
                 // Pass key to scanner manager
                 _scannerManager.ProcessKey(e.Key);
+            }
+        }
+
+        private void ProcessISBNButton_Click(object sender, RoutedEventArgs e)
+        {
+            string text = ScannerInputField.Text.Trim();
+            if (!string.IsNullOrEmpty(text))
+            {
+                ProcessManualInput(text);
             }
         }
 
@@ -120,7 +218,6 @@ namespace MyAthenaeio.Views
             }
         }
 
-
         private void OnBarcodeScanned(object? sender, string barcode)
         {
             if (sender == null) return;
@@ -133,7 +230,7 @@ namespace MyAthenaeio.Views
                 Result<BookApiResponse> bookResult = await BookApiService.FetchBookByISBN(barcode);
                 if (!bookResult.IsSuccess)
                 {
-                    //Only show error if window is active or this is a manual scan
+                    // Only show error if window is active or this is a manual scan
                     if (IsActive || sender == this)
                     {
                         MessageBox.Show(bookResult.Error, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
@@ -197,14 +294,19 @@ namespace MyAthenaeio.Views
 
                 // Show notification if app is not focused
                 if (!IsActive && sender != this)
+                {
                     _trayIconManager.ShowNotification(
                         "Book Scanned",
-                        $"ISBN: {ISBNValidator.FormatISBN(barcode)}"
-                    );
+                        $"ISBN: {ISBNValidator.FormatISBN(barcode)}");
+                }
 
                 SaveScanData();
             });
         }
+
+        #endregion
+
+        #region Scan Log Handling
 
         private async void AddToLibrary_Click(object sender, RoutedEventArgs e)
         {
@@ -218,6 +320,8 @@ namespace MyAthenaeio.Views
 
             try
             {
+                Mouse.OverrideCursor = Cursors.Wait;
+
                 // Fetch full book details
                 string cleanedBarcode = ISBNValidator.CleanISBN(barcodeToAdd);
                 Result<BookApiResponse> bookResult = await BookApiService.FetchFullBookByISBN(cleanedBarcode);
@@ -301,20 +405,14 @@ namespace MyAthenaeio.Views
                         }
                     });
                 }
-                else
-                {
-                    entry.IsInLibrary = true;
-                }
 
-                entry.IsInLibrary = true;
                 MessageBox.Show(ex.Message, "Already in Library",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"Failed to add book: {ex.Message}",
                     "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                button.IsEnabled = true;
             }
             finally
             {
@@ -322,70 +420,129 @@ namespace MyAthenaeio.Views
             }
         }
 
+        private async void ScanLogList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (ScanLogList.SelectedItem is not ScanLogEntry entry)
+                return;
+
+            try
+            {
+                Mouse.OverrideCursor = Cursors.Wait;
+
+                // Fetch full book details
+                string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
+                Result<BookApiResponse> bookResult = await BookApiService.FetchFullBookByISBN(cleanedBarcode);
+
+                if (!bookResult.IsSuccess)
+                {
+                    MessageBox.Show($"Could not load book details: {bookResult.Error}",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Open detail window
+                var detailWindow = new ScannedBookDetailWindow(bookResult.Value!) { Owner = this };
+                detailWindow.ShowDialog();
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
+        }
+
+        private async void ScanLogList_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            // Load covers when user scrolls
+            await LoadVisibleCovers();
+        }
+
+        #endregion
+
+        #region Window State Management
+
+        protected override void OnStateChanged(EventArgs e)
+        {
+            base.OnStateChanged(e);
+
+            // Handle restoration from hidden state
+            if (WindowState != WindowState.Minimized && !this.IsVisible)
+            {
+                this.Show();
+                this.ShowInTaskbar = true;
+            }
+        }
+
         private void Window_StateChanged(object? sender, EventArgs e)
         {
             if (sender == null) return;
 
-            if (WindowState == WindowState.Minimized)
+            try
             {
-                // User wants background scanning
-                if (BackgroundScanningCheckbox.IsChecked == true)
+                if (WindowState == WindowState.Minimized)
                 {
-                    _scannerManager.SetMode(ScannerMode.BackgroundService);
-
-                    // Check if user actually approved it (might have said no to dialog)
-                    if (_scannerManager.BackgroundModeEnabled)
+                    if (_settingsService.Settings.BackgroundScanningEnabled)
                     {
-                        StatusText.Foreground = Brushes.Black;
-                        StatusText.Text = "📚 Scanner active in background";
-                        _trayIconManager.ShowNotification(
-                            "myAthenaeio",
-                            "Scanner is active in background");
+                        Hide();
+                        ShowInTaskbar = false;
+
+                        _scannerManager.SetMode(ScannerMode.BackgroundService);
+
+                        if (_scannerManager.BackgroundModeEnabled)
+                        {
+                            _trayIconManager.ShowNotification(
+                                "myAthenaeio",
+                                "Scanner is active in background");
+                        }
+                        else
+                        {
+                            _settingsService.Settings.BackgroundScanningEnabled = false;
+                            _settingsService.SaveSettings();
+                        }
                     }
                     else
                     {
-                        // User declined the permission - uncheck the box
-                        BackgroundScanningCheckbox.IsChecked = false;
-                        StatusText.Foreground = Brushes.Black;
-                        StatusText.Text = "Scanner disabled (minimized)";
+                        _scannerManager.SetMode(ScannerMode.Disabled);
                     }
                 }
-                else
+                else if (WindowState == WindowState.Normal || WindowState == WindowState.Maximized)
                 {
-                    _scannerManager.SetMode(ScannerMode.Disabled);
+                    Show();
+                    ShowInTaskbar = true;
+
+                    _scannerManager.SetMode(ScannerMode.FocusedFieldOnly);
+                    ScannerInputField.Focus();
                     StatusText.Foreground = Brushes.Black;
-                    StatusText.Text = "Scanner disabled (minimized)";
+                    StatusText.Text = "Ready to scan";
                 }
             }
-            else
+            catch (Exception ex)
             {
-                // Window is normal or maximized - use focused mode
-                _scannerManager.SetMode(ScannerMode.FocusedFieldOnly);
-                ScannerInputField.Focus();
-                StatusText.Foreground = Brushes.Black;
-                StatusText.Text = "Ready to scan";
-            }
+                Debug.WriteLine($"Error in Window_StateChanged: {ex.Message}");
+                Debug.WriteLine($"Stack trace: {ex.StackTrace}");
 
-            UpdateCurrentModeText();
+                // Ensure window is visible on error
+                Show();
+                ShowInTaskbar = true;
+                WindowState = WindowState.Normal;
+            }
         }
 
-        private void Window_Activated(object sender, EventArgs e)
+        private void Window_Activated(object? sender, EventArgs e)
         {
             if (WindowState != WindowState.Minimized)
             {
                 _scannerManager.SetMode(ScannerMode.FocusedFieldOnly);
                 ScannerInputField.Focus();
-                UpdateCurrentModeText();
             }
         }
 
-        private void Window_Deactivated(object sender, EventArgs e)
+        private void Window_Deactivated(object? sender, EventArgs e)
         {
             // Only handle background mode if minimized
-            // Don't trigger when just clicking away from the window
             if (WindowState == WindowState.Minimized)
             {
-                if (BackgroundScanningCheckbox.IsChecked == true && _scannerManager.BackgroundModeEnabled)
+                if (_settingsService.Settings.BackgroundScanningEnabled &&
+                    _scannerManager.BackgroundModeEnabled)
                 {
                     _scannerManager.SetMode(ScannerMode.BackgroundService);
                 }
@@ -393,62 +550,31 @@ namespace MyAthenaeio.Views
                 {
                     _scannerManager.SetMode(ScannerMode.Disabled);
                 }
-                UpdateCurrentModeText();
             }
         }
 
         private void Window_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
         {
-            // Save books for later use
             SaveScanData();
-
+            _settingsService.SaveSettings();
             _trayIconManager?.Dispose();
             _scannerManager?.Dispose();
         }
 
-        private void BackgroundScanning_Changed(object sender, RoutedEventArgs e)
+        protected override void OnClosed(EventArgs e)
         {
-            if (_scannerManager == null) return;
-
-            // Only do something if the window is currently minimized or inactive
-            if (WindowState == WindowState.Minimized)
-            {
-                if (BackgroundScanningCheckbox.IsChecked == true)
-                {
-                    _scannerManager.SetMode(ScannerMode.BackgroundService);
-
-                    // If user declined permission, uncheck
-                    if (!_scannerManager.BackgroundModeEnabled)
-                    {
-                        BackgroundScanningCheckbox.IsChecked = false;
-                    }
-                }
-                else
-                {
-                    _scannerManager.SetMode(ScannerMode.Disabled);
-                }
-
-                UpdateCurrentModeText();
-            }
-            // If window is visible, just update the text - mode will change on minimize
+            base.OnClosed(e);
+            _coverLoadSemaphore?.Dispose();
         }
 
-        private void UpdateCurrentModeText()
-        {
-            string modeText = WindowState == WindowState.Minimized
-                ? (BackgroundScanningCheckbox.IsChecked == true && _scannerManager.BackgroundModeEnabled
-                    ? "Background Service (Active)"
-                    : "Disabled (Minimized)")
-                : (IsActive ? "Focused Field Only" : "Disabled");
+        #endregion
 
-            CurrentModeText.Text = modeText;
-        }
+        #region Data Persistence
 
         private void SaveScanData()
         {
             try
             {
-                // Ensure directory exists
                 string? directory = Path.GetDirectoryName(ScanSaveFilePath);
                 if (directory != null && !Directory.Exists(directory))
                 {
@@ -468,13 +594,11 @@ namespace MyAthenaeio.Views
                 };
 
                 string json = JsonSerializer.Serialize(dataToSave, SerializerOptions);
-
                 File.WriteAllText(ScanSaveFilePath, json);
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to save scan data: {ex.Message}", "Save Error",
-                    MessageBoxButton.OK, MessageBoxImage.Error);
+                System.Diagnostics.Debug.WriteLine($"Failed to save scan data: {ex.Message}");
             }
         }
 
@@ -483,16 +607,22 @@ namespace MyAthenaeio.Views
             try
             {
                 if (!File.Exists(LibrarySaveFilePath))
-                    return; // No saved data yet
+                    return;
 
-                var books = await LibraryService.GetAllBooksAsync(BookIncludeOptions.AuthorsOnly);
-                BooksDataGrid.ItemsSource = books;
+                var books = await LibraryService.GetAllBooksAsync(BookIncludeOptions.Search);
 
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    _books.Clear();
+                    foreach (var book in books)
+                    {
+                        _books.Add(book);
+                    }
+                });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to load book data: {ex.Message}", "Load Error",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Diagnostics.Debug.WriteLine($"Failed to load book data: {ex.Message}");
             }
         }
 
@@ -501,7 +631,7 @@ namespace MyAthenaeio.Views
             try
             {
                 if (!File.Exists(ScanSaveFilePath))
-                    return; // No saved data yet
+                    return;
 
                 string json = File.ReadAllText(ScanSaveFilePath);
                 var loadedData = JsonSerializer.Deserialize<AppData>(json);
@@ -532,14 +662,14 @@ namespace MyAthenaeio.Views
                 // Load covers for initially visible items
                 Dispatcher.InvokeAsync(async () =>
                 {
-                    await Task.Delay(100); // Let UI render
-                    await UpdateScanHistoryFromDatabase(); // Check DB status
+                    await Task.Delay(100);
+                    await UpdateScanHistoryFromDatabase();
                     await LoadVisibleCovers();
                 });
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to load data: {ex.Message}", "Load Error", MessageBoxButton.OK, MessageBoxImage.Warning);
+                System.Diagnostics.Debug.WriteLine($"Failed to load scan data: {ex.Message}");
             }
         }
 
@@ -547,17 +677,13 @@ namespace MyAthenaeio.Views
         {
             try
             {
-                // Get all books from database
                 var allBooks = await LibraryService.GetAllBooksAsync();
-
-                // Create a dictionary for fast lookup by cleaned ISBN (both formats)
                 var booksByIsbn = new Dictionary<string, (bool IsInLibrary, int BookId)>();
 
                 foreach (var book in allBooks)
                 {
                     var (isbn10, isbn13) = ISBNValidator.GetBothISBNFormats(book.ISBN);
 
-                    // Add both ISBN formats to dictionary
                     if (!string.IsNullOrEmpty(isbn10))
                     {
                         booksByIsbn[isbn10] = (true, book.Id);
@@ -568,7 +694,6 @@ namespace MyAthenaeio.Views
                     }
                 }
 
-                // Update all scan entries
                 foreach (var entry in _scanLog)
                 {
                     string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
@@ -586,42 +711,9 @@ namespace MyAthenaeio.Views
             }
         }
 
-        private async void ScanLogList_ScrollChanged(object sender, ScrollChangedEventArgs e)
-        {
-            // Load covers when user scrolls
-            await LoadVisibleCovers();
-        }
+        #endregion
 
-        private async void ScanLogList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
-        {
-            if (ScanLogList.SelectedItem is not ScanLogEntry entry)
-                return;
-
-            try
-            {
-                // Fetch full book details
-                string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
-                Result<BookApiResponse> bookResult = await BookApiService.FetchFullBookByISBN(cleanedBarcode);
-
-                if (!bookResult.IsSuccess)
-                {
-                    MessageBox.Show($"Could not load book details: {bookResult.Error}",
-                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
-
-                // Open detail window
-                var detailWindow = new ScannedBookDetailWindow(bookResult.Value!)
-                {
-                    Owner = this
-                };
-                detailWindow.ShowDialog();
-            }
-            finally
-            {
-                Mouse.OverrideCursor = null;
-            }
-        }
+        #region Cover Loading
 
         private async Task LoadVisibleCovers()
         {
@@ -634,8 +726,6 @@ namespace MyAthenaeio.Views
                     if (!entry.IsCoverLoaded && !_loadingCovers.Contains(entry.Barcode))
                     {
                         _loadingCovers.Add(entry.Barcode);
-
-                        // Load cover in background without blocking UI
                         await LoadCoverForEntry(entry);
                     }
                 }
@@ -654,7 +744,6 @@ namespace MyAthenaeio.Views
 
                 if (coverResult.IsSuccess)
                 {
-                    // Update on UI thread
                     await Dispatcher.InvokeAsync(() =>
                     {
                         entry.Cover = coverResult.Value;
@@ -663,12 +752,12 @@ namespace MyAthenaeio.Views
                 }
                 else
                 {
-                    entry.IsCoverLoaded = true; // Mark as loaded even if failed
+                    entry.IsCoverLoaded = true;
                 }
             }
             catch
             {
-                entry.IsCoverLoaded = true; // Prevent retrying on failure
+                entry.IsCoverLoaded = true;
             }
             finally
             {
@@ -684,16 +773,13 @@ namespace MyAthenaeio.Views
             if (ScanLogList.Items.Count == 0)
                 return visibleItems;
 
-            // Get the container for the ListView
             var scrollViewer = FindScrollViewer(ScanLogList);
             if (scrollViewer == null)
                 return visibleItems;
 
-            // Calculate visible range
             int firstVisible = (int)(scrollViewer.VerticalOffset);
             int lastVisible = (int)(scrollViewer.VerticalOffset + scrollViewer.ViewportHeight);
 
-            // Add buffer for smooth scrolling
             firstVisible = Math.Max(0, firstVisible - 5);
             lastVisible = Math.Min(ScanLogList.Items.Count - 1, lastVisible + 5);
 
@@ -724,13 +810,10 @@ namespace MyAthenaeio.Views
             return null;
         }
 
-        protected override void OnClosed(EventArgs e)
-        {
-            base.OnClosed(e);
-            _coverLoadSemaphore?.Dispose();
-        }
+        #endregion
 
-        // Event handlers for View Library tab
+        #region Library Tab Event Handlers
+
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox textBox)
@@ -754,13 +837,10 @@ namespace MyAthenaeio.Views
 
         private async void AddManualEntryButton_Click(object sender, RoutedEventArgs e)
         {
-            var addWindow = new BookAddDialog
-            {
-                Owner = this
-            };
+            var addWindow = new BookAddDialog { Owner = this };
+
             if (addWindow.ShowDialog() == true)
             {
-                // Refresh the library after adding
                 await LoadBooks();
             }
         }
@@ -788,17 +868,15 @@ namespace MyAthenaeio.Views
 
         private async Task ViewBookDetails(Book book)
         {
-            try
+
+            Mouse.OverrideCursor = Cursors.Wait;
+
+            var detailWindow = new BookDetailWindow(book.Id) { Owner = this };
+
+            if (detailWindow.ShowDialog() == true)
             {
-                var detailWindow = new BookDetailWindow(book)
-                {
-                    Owner = this
-                };
-                detailWindow.ShowDialog();
-            }
-            finally
-            {
-                Mouse.OverrideCursor = null;
+                // Refresh the book list if changes were made
+                await LoadBooks();
             }
         }
 
@@ -806,13 +884,16 @@ namespace MyAthenaeio.Views
         {
             try
             {
+                Mouse.OverrideCursor = Cursors.Wait;
+
                 if (string.IsNullOrWhiteSpace(_searchText))
                 {
                     await LoadBooks();
                     return;
                 }
 
-                var books = await LibraryService.SearchBooksAsync(_searchText);
+                var books = await LibraryService.SearchBooksAsync(_searchText, BookIncludeOptions.Search);
+
                 _books.Clear();
                 foreach (var book in books)
                 {
@@ -832,11 +913,12 @@ namespace MyAthenaeio.Views
 
         private async Task LoadBooks()
         {
-            Mouse.OverrideCursor = Cursors.Wait;
-
             try
             {
-                var books = await LibraryService.GetAllBooksAsync();
+                Mouse.OverrideCursor = Cursors.Wait;
+
+                var books = await LibraryService.GetAllBooksAsync(BookIncludeOptions.Search);
+
                 _books.Clear();
                 foreach (var book in books)
                 {
@@ -853,5 +935,7 @@ namespace MyAthenaeio.Views
                 Mouse.OverrideCursor = null;
             }
         }
+
+        #endregion
     }
 }

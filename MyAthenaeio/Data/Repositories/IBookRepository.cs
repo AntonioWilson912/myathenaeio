@@ -28,9 +28,17 @@ namespace MyAthenaeio.Data.Repositories
         Task<bool> IsAvailableAsync(int bookId);
 
         // Relationship updates
+        Task AddGenreAsync(int bookId, int genreId);
+        Task AddTagAsync(int bookId, int tagId);
+        Task AddCollectionAsync(int bookId, int collectionId);
+
         Task UpdateAuthorsAsync(int bookId, List<int> authorIds);
         Task UpdateGenresAsync(int bookId, List<int> genreIds);
         Task UpdateTagsAsync(int bookId, List<int> tagIds);
         Task UpdateCollectionsAsync(int bookId, List<int> collectionIds);
+
+        Task RemoveGenreAsync(int bookId, int genreId);
+        Task RemoveTagAsync(int bookId, int tagId);
+        Task RemoveCollectionAsync(int bookId, int collectionId);
     }
 }

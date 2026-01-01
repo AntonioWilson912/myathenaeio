@@ -6,7 +6,7 @@ using MyAthenaeio.Utils;
 
 namespace MyAthenaeio.Data.Repositories
 {
-    public class BookRepository(AppDbContext context) : Repository<Book>(context), IBookRepository
+    public class BookRepository(AppDbContext _context) : Repository<Book>(_context), IBookRepository
     {
 
         #region Query Methods with Include Options
@@ -162,7 +162,7 @@ namespace MyAthenaeio.Data.Repositories
                     if (author == null && !string.IsNullOrEmpty(authorInfo.Name))
                     {
                         author = await _context.Authors
-                            .FirstOrDefaultAsync(a => a.Name == authorInfo.Name && a.OpenLibraryKey == null);
+                            .FirstOrDefaultAsync(a => a.Name == authorInfo.Name);
                     }
 
                     // Create new author if not found
@@ -250,6 +250,51 @@ namespace MyAthenaeio.Data.Repositories
             }
         }
 
+        public async Task AddGenreAsync(int bookId, int genreId)
+        {
+            var book = await _context.Books
+                .Include(b => b.Genres)
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book not found.");
+
+            var genre = await _context.Genres.FindAsync(genreId) ?? throw new InvalidOperationException("Genre not found.");
+            if (!book.Genres.Any(g => g.Id == genreId))
+            {
+                book.Genres.Add(genre);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task AddTagAsync(int bookId, int tagId)
+        {
+            var book = await _context.Books
+                .Include(b => b.Tags)
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book not found.");
+
+            var tag = await _context.Tags.FindAsync(tagId) ?? throw new InvalidOperationException("Tag not found.");
+            if (!book.Tags.Any(t => t.Id == tagId))
+            {
+                book.Tags.Add(tag);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task AddCollectionAsync(int bookId, int collectionId)
+        {
+            var book = await _context.Books
+                .Include(b => b.Collections)
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book not found.");
+
+            var collection = await _context.Collections.FindAsync(collectionId) ?? throw new InvalidOperationException("Collection not found.");
+            if (!book.Collections.Any(c => c.Id == collectionId))
+            {
+                book.Collections.Add(collection);
+                await _context.SaveChangesAsync();
+            }
+        }
+
         #endregion
 
         #region Update Methods
@@ -257,10 +302,8 @@ namespace MyAthenaeio.Data.Repositories
         public override async Task UpdateAsync(Book book)
         {
             var existingBook = await _context.Books
-                .FirstOrDefaultAsync(b => b.Id == book.Id);
-
-            if (existingBook == null)
-                throw new InvalidOperationException("Book does not exist.");
+                .FirstOrDefaultAsync(b => b.Id == book.Id)
+                ?? throw new InvalidOperationException("Book does not exist.");
 
             existingBook.Title = book.Title;
             existingBook.Subtitle = book.Subtitle;
@@ -278,10 +321,8 @@ namespace MyAthenaeio.Data.Repositories
         {
             var book = await _context.Books
                 .Include(b => b.Authors)
-                .FirstOrDefaultAsync(b => b.Id == bookId);
-
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book does not exist.");
 
             book.Authors.Clear();
 
@@ -301,10 +342,8 @@ namespace MyAthenaeio.Data.Repositories
         {
             var book = await _context.Books
                 .Include(b => b.Genres)
-                .FirstOrDefaultAsync(b => b.Id == bookId);
-
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book does not exist.");
 
             book.Genres.Clear();
 
@@ -324,10 +363,8 @@ namespace MyAthenaeio.Data.Repositories
         {
             var book = await _context.Books
                 .Include(b => b.Tags)
-                .FirstOrDefaultAsync(b => b.Id == bookId);
-
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book does not exist.");
 
             book.Tags.Clear();
 
@@ -347,10 +384,8 @@ namespace MyAthenaeio.Data.Repositories
         {
             var book = await _context.Books
                 .Include(b => b.Collections)
-                .FirstOrDefaultAsync(b => b.Id == bookId);
-
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book does not exist.");
 
             book.Collections.Clear();
 
@@ -368,7 +403,56 @@ namespace MyAthenaeio.Data.Repositories
 
         #endregion
 
-        #region
+        #region Removal Methods
+
+        public async Task RemoveGenreAsync(int bookId, int genreId)
+        {
+            var book = await _context.Books
+                .Include(b => b.Genres)
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book not found.");
+
+            var genre = book.Genres.FirstOrDefault(g => g.Id == genreId);
+            if (genre != null)
+            {
+                book.Genres.Remove(genre);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task RemoveTagAsync(int bookId, int tagId)
+        {
+            var book = await _context.Books
+                .Include(b => b.Tags)
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book not found.");
+
+            var tag = book.Tags.FirstOrDefault(t => t.Id == tagId);
+            if (tag != null)
+            {
+                book.Tags.Remove(tag);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        public async Task RemoveCollectionAsync(int bookId, int collectionId)
+        {
+            var book = await _context.Books
+                .Include(b => b.Collections)
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book not found.");
+
+            var collection = book.Collections.FirstOrDefault(c => c.Id == collectionId);
+            if (collection != null)
+            {
+                book.Collections.Remove(collection);
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        #endregion
+
+        #region Delete Methods
 
         public override async Task DeleteAsync(int bookId)
         {
@@ -461,8 +545,16 @@ namespace MyAthenaeio.Data.Repositories
                 query = query.Include(b => b.Copies);
 
             if (options.IncludeLoans)
+            {
                 query = query.Include(b => b.Loans)
                         .ThenInclude(l => l.Renewals);
+
+                if (options.IncludeBorrowers)
+                {
+                    query = query.Include(b => b.Loans)
+                                .ThenInclude(l => l.Borrower);
+                }
+            }
 
             return query;
         }

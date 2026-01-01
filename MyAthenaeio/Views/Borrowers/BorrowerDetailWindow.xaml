@@ -5,9 +5,260 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:local="clr-namespace:MyAthenaeio.Views.Borrowers"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    Title="BorrowerDetailWindow"
+    Title="Borrower Details"
     Width="800"
-    Height="450"
+    Height="650"
+    WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
-    <Grid />
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/Styles.xaml" />
+    </Window.Resources>
+
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
+            <Grid>
+                <TextBlock
+                    VerticalAlignment="Center"
+                    FontSize="20"
+                    FontWeight="Bold"
+                    Foreground="White"
+                    Text="Borrower Details" />
+                <Button
+                    HorizontalAlignment="Right"
+                    Click="Edit_Click"
+                    Content="Edit Borrower" />
+            </Grid>
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Borrower Information">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Label
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Content="Name:" />
+                        <TextBlock
+                            x:Name="NameTextBlock"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Margin="5"
+                            VerticalAlignment="Center" />
+
+                        <Label
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Content="Email:" />
+                        <TextBlock
+                            x:Name="EmailTextBlock"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="5"
+                            VerticalAlignment="Center" />
+
+                        <Label
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Content="Phone:" />
+                        <TextBlock
+                            x:Name="PhoneTextBlock"
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Margin="5"
+                            VerticalAlignment="Center" />
+
+                        <Label
+                            Grid.Row="3"
+                            Grid.Column="0"
+                            Content="Registered Date:" />
+                        <TextBlock
+                            x:Name="RegisteredDateTextBlock"
+                            Grid.Row="3"
+                            Grid.Column="1"
+                            Margin="5"
+                            VerticalAlignment="Center" />
+
+                        <Label
+                            Grid.Row="4"
+                            Grid.Column="0"
+                            Content="Status:" />
+                        <TextBlock
+                            x:Name="StatusTextBlock"
+                            Grid.Row="4"
+                            Grid.Column="1"
+                            Margin="5"
+                            VerticalAlignment="Center" />
+
+                        <Label
+                            Grid.Row="5"
+                            Grid.Column="0"
+                            Content="Notes:" />
+                        <TextBlock
+                            x:Name="NotesTextBlock"
+                            Grid.Row="5"
+                            Grid.Column="1"
+                            Margin="5"
+                            VerticalAlignment="Center"
+                            TextWrapping="Wrap" />
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Header="Loan Summary">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="150" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <Label
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Content="Active Loans:" />
+                        <TextBlock
+                            x:Name="ActiveLoansTextBlock"
+                            Grid.Row="0"
+                            Grid.Column="1"
+                            Margin="5"
+                            VerticalAlignment="Center" />
+
+                        <Label
+                            Grid.Row="1"
+                            Grid.Column="0"
+                            Content="Total Loans:" />
+                        <TextBlock
+                            x:Name="TotalLoansTextBlock"
+                            Grid.Row="1"
+                            Grid.Column="1"
+                            Margin="5"
+                            VerticalAlignment="Center" />
+
+                        <Label
+                            Grid.Row="2"
+                            Grid.Column="0"
+                            Content="Overdue Loans:" />
+                        <TextBlock
+                            x:Name="OverdueLoansTextBlock"
+                            Grid.Row="2"
+                            Grid.Column="1"
+                            Margin="5"
+                            VerticalAlignment="Center" />
+                    </Grid>
+                </GroupBox>
+
+                <TabControl Height="350">
+                    <TabItem Header="Active Loans">
+                        <DataGrid
+                            x:Name="ActiveLoansDataGrid"
+                            AutoGenerateColumns="False"
+                            IsReadOnly="True"
+                            MouseDoubleClick="LoanDataGrid_MouseDoubleClick">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding BookCopy.Book.Title}"
+                                    Header="Title" />
+                                <DataGridTextColumn
+                                    Width="80"
+                                    Binding="{Binding BookCopy.CopyNumber}"
+                                    Header="Copy #" />
+                                <DataGridTextColumn
+                                    Width="100"
+                                    Binding="{Binding CheckoutDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                    Header="Loan Date" />
+                                <DataGridTextColumn
+                                    Width="100"
+                                    Binding="{Binding DueDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                    Header="Due Date">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsOverdue}" Value="True">
+                                                    <Setter Property="Foreground" Value="Red" />
+                                                    <Setter Property="FontWeight" Value="Bold" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn
+                                    Width="80"
+                                    Binding="{Binding RenewalCount}"
+                                    Header="Renewals" />
+                                <DataGridTemplateColumn Width="80" Header="Overdue">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <CheckBox
+                                                HorizontalAlignment="Center"
+                                                IsChecked="{Binding IsOverdue, Mode=OneWay}"
+                                                IsEnabled="False" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </TabItem>
+
+                    <TabItem Header="Loan History">
+                        <DataGrid
+                            x:Name="LoanHistoryDataGrid"
+                            AutoGenerateColumns="False"
+                            IsReadOnly="True"
+                            MouseDoubleClick="LoanDataGrid_MouseDoubleClick">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding BookCopy.Book.Title}"
+                                    Header="Title" />
+                                <DataGridTextColumn
+                                    Width="100"
+                                    Binding="{Binding CheckoutDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                    Header="Loan Date" />
+                                <DataGridTextColumn
+                                    Width="100"
+                                    Binding="{Binding ReturnDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                    Header="Return Date" />
+                                <DataGridTextColumn
+                                    Width="80"
+                                    Binding="{Binding RenewalCount}"
+                                    Header="Renewals" />
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </TabItem>
+                </TabControl>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Button
+            Grid.Row="2"
+            Width="100"
+            Margin="0,15,0,0"
+            HorizontalAlignment="Right"
+            Click="Close_Click"
+            Content="Close" />
+    </Grid>
 </Window>

@@ -14,6 +14,6 @@ namespace MyAthenaeio.Models.DTOs
         public string? Isbn13 { get; set; }
         public string Key { get; set; } = string.Empty;
         public string? CoverImageUrl { get; set; }
-        public BitmapImage? Cover { get; set; }
+        public BitmapSource? Cover { get; set; }
     }
 }

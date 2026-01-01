@@ -8,7 +8,7 @@
     Title="Book Details"
     Width="800"
     Height="800"
-    WindowStartupLocation="CenterScreen"
+    WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
 
     <Window.Resources>
@@ -22,12 +22,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border
-            Grid.Row="0"
-            Margin="0,0,0,15"
-            Padding="15"
-            Background="{StaticResource RusticAccent}"
-            CornerRadius="5">
+        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
             <TextBlock
                 FontSize="20"
                 FontWeight="Bold"
@@ -308,7 +303,6 @@
                                 HorizontalAlignment="Right"
                                 Orientation="Horizontal">
                                 <Button Click="AddAuthor_Click" Content="Add Author" />
-                                <Button Click="RefreshAuthors_Click" Content="Refresh" />
                             </StackPanel>
                         </Grid>
                     </GroupBox>
@@ -329,7 +323,8 @@
                                 Grid.Row="0"
                                 Height="120"
                                 AutoGenerateColumns="False"
-                                IsReadOnly="True">
+                                IsReadOnly="True"
+                                MouseDoubleClick="CopiesDataGrid_MouseDoubleClick">
                                 <DataGrid.Columns>
                                     <DataGridTextColumn
                                         Width="100"
@@ -364,10 +359,6 @@
                                     Margin="5"
                                     Click="AddCopy_Click"
                                     Content="Add New Copy" />
-                                <Button
-                                    Margin="5"
-                                    Click="ManageLoans_Click"
-                                    Content="Manage Loans" />
                             </StackPanel>
                         </Grid>
                     </GroupBox>
@@ -377,43 +368,55 @@
                         x:Name="LoanHistoryGroupBox"
                         Margin="0,10,0,0"
                         Header="Loan History">
-                        <DataGrid
-                            x:Name="LoanHistoryDataGrid"
-                            Height="150"
-                            AutoGenerateColumns="False"
-                            IsReadOnly="True"
-                            MouseDoubleClick="LoanHistoryDataGrid_MouseDoubleClick">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn
-                                    Width="80"
-                                    Binding="{Binding BookCopy.CopyNumber}"
-                                    Header="Copy #" />
-                                <DataGridTextColumn
-                                    Width="150"
-                                    Binding="{Binding Borrower.Name}"
-                                    Header="Borrower" />
-                                <DataGridTextColumn
-                                    Width="150"
-                                    Binding="{Binding Borrower.Email}"
-                                    Header="Email" />
-                                <DataGridTextColumn
-                                    Width="120"
-                                    Binding="{Binding CheckoutDate, StringFormat='{}{0:yyyy-MM-dd}'}"
-                                    Header="Loan Date" />
-                                <DataGridTextColumn
-                                    Width="120"
-                                    Binding="{Binding DueDate, StringFormat='{}{0:yyyy-MM-dd}'}"
-                                    Header="Due Date" />
-                                <DataGridTextColumn
-                                    Width="120"
-                                    Binding="{Binding ReturnDate, StringFormat='{}{0:yyyy-MM-dd}'}"
-                                    Header="Return Date" />
-                                <DataGridTextColumn
-                                    Width="*"
-                                    Binding="{Binding Notes}"
-                                    Header="Notes" />
-                            </DataGrid.Columns>
-                        </DataGrid>
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+                            <DataGrid
+                                x:Name="LoanHistoryDataGrid"
+                                Grid.Row="0"
+                                Height="150"
+                                AutoGenerateColumns="False"
+                                IsReadOnly="True"
+                                MouseDoubleClick="LoanHistoryDataGrid_MouseDoubleClick">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn
+                                        Width="80"
+                                        Binding="{Binding BookCopy.CopyNumber}"
+                                        Header="Copy #" />
+                                    <DataGridTextColumn
+                                        Width="150"
+                                        Binding="{Binding Borrower.Name}"
+                                        Header="Borrower" />
+                                    <DataGridTextColumn
+                                        Width="120"
+                                        Binding="{Binding CheckoutDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                        Header="Loan Date" />
+                                    <DataGridTextColumn
+                                        Width="120"
+                                        Binding="{Binding EffectiveDueDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                        Header="Due Date" />
+                                    <DataGridTextColumn
+                                        Width="120"
+                                        Binding="{Binding ReturnDate, StringFormat='{}{0:yyyy-MM-dd}'}"
+                                        Header="Return Date" />
+                                    <DataGridTextColumn
+                                        Width="*"
+                                        Binding="{Binding Notes}"
+                                        Header="Notes" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                            <StackPanel
+                                Grid.Row="1"
+                                HorizontalAlignment="Right"
+                                Orientation="Horizontal">
+                                <Button
+                                    Margin="5"
+                                    Click="ManageLoans_Click"
+                                    Content="Manage Loans" />
+                            </StackPanel>
+                        </Grid>
                     </GroupBox>
                 </StackPanel>
             </Grid>

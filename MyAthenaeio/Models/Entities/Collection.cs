@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MyAthenaeio.Models.Entities
 {
@@ -15,5 +16,8 @@ namespace MyAthenaeio.Models.Entities
         public string? Notes { get; set; }
 
         public ICollection<Book> Books { get; set; } = [];
+
+        [NotMapped]
+        public int BookCount { get; set; }
     }
 }

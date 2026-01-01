@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MyAthenaeio.Data.Repositories
 {
@@ -79,6 +80,17 @@ namespace MyAthenaeio.Data.Repositories
                 .ToListAsync();
         }
 
+        public async Task<List<Author>> GetByBookAsync(int bookId, AuthorIncludeOptions? options = null)
+        {
+            options ??= AuthorIncludeOptions.Default;
+
+            var authorsQuery = BuildQuery(_dbSet.AsQueryable(), options);
+
+            return await authorsQuery
+                .Where(author => author.Books.Any(b => b.Id == bookId))
+                .ToListAsync();
+        }
+
         #endregion
 
         #region Add Methods with Validation
@@ -116,6 +128,8 @@ namespace MyAthenaeio.Data.Repositories
             existingAuthor.Name = author.Name;
             existingAuthor.Bio = author.Bio;
             existingAuthor.OpenLibraryKey = author.OpenLibraryKey;
+            existingAuthor.BirthDate = author.BirthDate;
+            existingAuthor.PhotoUrl = author.PhotoUrl;
 
             await _context.SaveChangesAsync();
         }

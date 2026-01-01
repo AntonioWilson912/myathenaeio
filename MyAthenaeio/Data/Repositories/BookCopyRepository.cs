@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Models.Entities;
+using MyAthenaeio.Models.ViewModels;
 
 namespace MyAthenaeio.Data.Repositories
 {
@@ -8,6 +9,15 @@ namespace MyAthenaeio.Data.Repositories
         public BookCopyRepository(AppDbContext context) : base(context) { }
 
         #region Query Methods
+
+        public async Task<BookCopy?> GetByIdAsync(int bookCopyId, BookCopyIncludeOptions? options = null)
+        {
+            options ??= BookCopyIncludeOptions.Default;
+
+            var query = BuildQuery(_dbSet.AsQueryable(), options);
+
+            return await query.FirstOrDefaultAsync(bc => bc.Id == bookCopyId);
+        }
 
         public async Task<List<BookCopy>> GetByBookAsync(int bookId)
         {
@@ -71,34 +81,16 @@ namespace MyAthenaeio.Data.Repositories
 
         #region Operations
 
-        public async Task<BookCopy> CreateCopyAsync(int bookId, string? condition = null, string? notes = null)
+        public async Task<BookCopy> AddCopyAsync(int bookId, BookCopy bookCopy)
         {
-            var book = await _context.Books.FindAsync(bookId);
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
-
-            // Get next copy number
-            var existingCopies = await CountAsync(bc => bc.BookId == bookId);
-            var copyNumber = $"Copy {existingCopies + 1}";
-
-            var bookCopy = new BookCopy
-            {
-                BookId = bookId,
-                CopyNumber = copyNumber,
-                AcquisitionDate = DateTime.UtcNow,
-                IsAvailable = true,
-                Notes = notes
-            };
-
+            var book = await _context.Books.FindAsync(bookId) ?? throw new InvalidOperationException("Book does not exist.");
             await AddAsync(bookCopy);
             return bookCopy;
         }
 
         public async Task MarkAsUnavailableAsync(int bookCopyId)
         {
-            var copy = await GetByIdAsync(bookCopyId);
-            if (copy == null)
-                throw new InvalidOperationException("Book copy does not exist.");
+            var copy = await GetByIdAsync(bookCopyId) ?? throw new InvalidOperationException("Book copy does not exist.");
 
             copy.IsAvailable = false;
             await _context.SaveChangesAsync();
@@ -106,9 +98,7 @@ namespace MyAthenaeio.Data.Repositories
 
         public async Task MarkAsAvailableAsync(int bookCopyId)
         {
-            var copy = await GetByIdAsync(bookCopyId);
-            if (copy == null)
-                throw new InvalidOperationException("Book copy does not exist.");
+            var copy = await GetByIdAsync(bookCopyId) ?? throw new InvalidOperationException("Book copy does not exist.");
 
             copy.IsAvailable = true;
             await _context.SaveChangesAsync();
@@ -120,15 +110,43 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task UpdateAsync(BookCopy bookCopy)
         {
-            var existing = await _context.BookCopies.FindAsync(bookCopy.Id);
-            if (existing == null)
-                throw new InvalidOperationException("Book copy does not exist.");
+            var existing = await _context.BookCopies.FindAsync(bookCopy.Id) ?? throw new InvalidOperationException("Book copy does not exist.");
 
             existing.CopyNumber = bookCopy.CopyNumber;
             existing.Notes = bookCopy.Notes;
+            existing.Condition = bookCopy.Condition;
+            existing.AcquisitionDate = bookCopy.AcquisitionDate;
             existing.IsAvailable = bookCopy.IsAvailable;
 
             await _context.SaveChangesAsync();
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        private static IQueryable<BookCopy> BuildQuery(IQueryable<BookCopy> query, BookCopyIncludeOptions options)
+        {
+            if (options.IncludeBook)
+            {
+                query = query.Include(bc => bc.Book);
+
+                if (options.IncludeAuthors)
+                {
+                    query = query.Include(bc => bc.Book)
+                                    .ThenInclude(b => b.Authors);
+                }
+            }
+
+            if (options.IncludeLoans)
+            {
+                query = query.Include(bc => bc.Loans)
+                                .ThenInclude(l => l.Renewals)
+                             .Include(bc => bc.Loans)
+                                .ThenInclude(l => l.Borrower);
+            }
+
+            return query;
         }
 
         #endregion

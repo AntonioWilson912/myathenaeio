@@ -78,6 +78,9 @@ namespace MyAthenaeio.Data
                 entity.Property(e => e.Notes)
                     .HasMaxLength(100);
 
+                entity.Property(e => e.Condition)
+                    .HasDefaultValue("New");
+
                 entity.HasOne(e => e.Book)
                     .WithMany(b => b.Copies)
                     .HasForeignKey(e => e.BookId)
@@ -89,7 +92,9 @@ namespace MyAthenaeio.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Name);
-                entity.HasIndex(e => e.OpenLibraryKey).IsUnique();
+                entity.HasIndex(e => e.OpenLibraryKey)
+                    .IsUnique()
+                    .HasFilter("OpenLibraryKey IS NOT NULL");
 
                 entity.Property(e => e.Name)
                     .IsRequired()
@@ -239,10 +244,10 @@ namespace MyAthenaeio.Data
 
             // Seed default categories
             modelBuilder.Entity<Genre>().HasData(
-                new Genre {  Id = 1, Name = "Fantasy" },
-                new Genre {  Id = 2, Name = "Science Fiction"},
-                new Genre {  Id = 3, Name = "Reference"},
-                new Genre {  Id = 4, Name = "Language"}
+                new Genre { Id = 1, Name = "Fantasy" },
+                new Genre { Id = 2, Name = "Science Fiction" },
+                new Genre { Id = 3, Name = "Reference" },
+                new Genre { Id = 4, Name = "Language" }
             );
         }
     }
