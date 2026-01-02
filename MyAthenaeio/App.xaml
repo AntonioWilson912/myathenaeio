@@ -8,6 +8,7 @@
     <Application.Resources>
         <converters:BookCoverConverter x:Key="BookCoverConverter" />
         <converters:BoolToAvailabilityConverter x:Key="BoolToAvailabilityConverter" />
+        <converters:InverseBooleanToVisibilityConverter x:Key="InverseBooleanToVisibilityConverter" />
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
     </Application.Resources>
 </Application>

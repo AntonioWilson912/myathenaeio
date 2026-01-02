@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Models.Entities;
+using MyAthenaeio.Utils;
 
 
 namespace MyAthenaeio.Data
@@ -249,6 +250,37 @@ namespace MyAthenaeio.Data
                 new Genre { Id = 3, Name = "Reference" },
                 new Genre { Id = 4, Name = "Language" }
             );
+        }
+
+        public override int SaveChanges()
+        {
+            NormalizeBookISBNs();
+            return base.SaveChanges();
+        }
+
+        public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        {
+            NormalizeBookISBNs();
+            return await base.SaveChangesAsync(cancellationToken);
+        }
+
+        private void NormalizeBookISBNs()
+        {
+            var bookEntries = ChangeTracker.Entries<Book>()
+                .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
+
+            foreach (var entry in bookEntries)
+            {
+                var book = entry.Entity;
+                if (!string.IsNullOrWhiteSpace(book.ISBN))
+                {
+                    var cleanedISBN = ISBNValidator.CleanISBN(book.ISBN);
+                    if (cleanedISBN.Length == 10)
+                    {
+                        book.ISBN = ISBNValidator.ConvertISBN10ToISBN13(cleanedISBN)!;
+                    }
+                }
+            }
         }
     }
 }

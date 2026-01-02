@@ -4,6 +4,7 @@ using MyAthenaeio.Services;
 using MyAthenaeio.Utils;
 using System.Diagnostics;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
 namespace MyAthenaeio.Views.Books
@@ -16,6 +17,58 @@ namespace MyAthenaeio.Views.Books
         {
             InitializeComponent();
             _book = new Book();
+        }
+
+        public BookAddDialog(string? prefilledISBN = null) : this()
+        {
+            if (!string.IsNullOrEmpty(prefilledISBN))
+            {
+                // Clean the ISBN first to remove any formatting
+                string cleaned = ISBNValidator.CleanISBN(prefilledISBN);
+
+                // Validate the format
+                if (ISBNValidator.IsValidISBNFormat(cleaned))
+                {
+                    if (cleaned.Length == 10)
+                    {
+                        ISBN10TextBox.Text = cleaned;
+                        string? isbn13 = ISBNValidator.ConvertISBN10ToISBN13(cleaned);
+                        if (isbn13 != null)
+                        {
+                            ISBN13TextBox.Text = isbn13;
+                        }
+                    }
+                    else if (cleaned.Length == 13)
+                    {
+                        ISBN13TextBox.Text = cleaned;
+                        string? isbn10 = ISBNValidator.ConvertISBN13ToISBN10(cleaned);
+                        if (isbn10 != null)
+                        {
+                            ISBN10TextBox.Text = isbn10;
+                        }
+                    }
+                }
+                else
+                {
+                    // Invalid ISBN - still pre-fill but warn user
+                    if (cleaned.Length == 10 || cleaned.StartsWith("978") || cleaned.StartsWith("979"))
+                    {
+                        // Looks like it's trying to be ISBN-13
+                        ISBN13TextBox.Text = cleaned;
+                    }
+                    else
+                    {
+                        // Assume ISBN-10
+                        ISBN10TextBox.Text = cleaned;
+                    }
+
+                    MessageBox.Show(
+                        $"The provided ISBN appears to be invalid. Please verify it before saving.\n\nISBN: {cleaned}",
+                        "Invalid ISBN Format",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
         }
 
         private void ISBN10TextBox_LostFocus(object sender, RoutedEventArgs e)
@@ -66,6 +119,12 @@ namespace MyAthenaeio.Views.Books
                         "Invalid ISBN", MessageBoxButton.OK, MessageBoxImage.Warning);
                 }
             }
+        }
+
+        private void PublicationYear_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // Only allow digits
+            e.Handled = !System.Text.RegularExpressions.Regex.IsMatch(e.Text, "^[0-9]$");
         }
 
         private void FetchCover_Click(object sender, RoutedEventArgs e)
@@ -129,9 +188,26 @@ namespace MyAthenaeio.Views.Books
                 _book.Description = DescriptionTextBox.Text.Trim();
                 _book.CoverImageUrl = CoverUrlTextBox.Text.Trim();
 
-                if (PublicationDatePicker.SelectedDate.HasValue)
+                // Check for valid publication year
+                var yearText = PublicationYearTextBox.Text.Trim();
+
+                if (string.IsNullOrEmpty(yearText))
                 {
-                    _book.PublicationYear = PublicationDatePicker.SelectedDate.Value.Year;
+                    _book.PublicationYear = null;
+                }
+                else if (int.TryParse(yearText, out int year) && year <= DateTime.Now.Year + 1)
+                {
+                    _book.PublicationYear = year;
+                }
+                else
+                {
+                    MessageBox.Show(
+                        $"Please enter a valid year before {DateTime.Now.Year + 1}.",
+                        "Invalid Year",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    PublicationYearTextBox.Focus();
+                    return;
                 }
 
                 var authorNames = AuthorsTextBox.Text.Trim().Split(",")

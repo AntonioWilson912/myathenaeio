@@ -34,7 +34,7 @@
                 <MenuItem Click="Exit_Click" Header="E_xit" />
             </MenuItem>
             <MenuItem Header="_Tools">
-                <MenuItem Click="ManageBorrowers_Click" Header="_Manage Borrowers" />
+                <MenuItem Click="ManageBorrowers_Click" Header="Manage _Borrowers" />
                 <MenuItem Click="ManageGenres_Click" Header="Manage _Genres" />
                 <MenuItem Click="ManageTags_Click" Header="Manage _Tags" />
                 <MenuItem Click="ManageCollections_Click" Header="Manage _Collections" />
@@ -42,7 +42,10 @@
                 <MenuItem Click="Settings_Click" Header="_Settings" />
             </MenuItem>
             <MenuItem Header="_Help">
-                <MenuItem Click="ViewHelp_Click" Header="_View Help" />
+                <MenuItem Click="ViewHelp_Click" Header="View _Help" />
+                <MenuItem Click="ScannerHelp_Click" Header="_Scanner Guide" />
+                <MenuItem Click="LoanHelp_Click" Header="_Loaning Guide" />
+                <MenuItem Click="TroubleshootingHelp_Click" Header="_Troubleshooting" />
                 <Separator />
                 <MenuItem Click="About_Click" Header="_About" />
             </MenuItem>
@@ -114,8 +117,6 @@
                             <Button
                                 x:Name="SearchButton"
                                 Grid.Column="1"
-                                Width="100"
-                                Margin="5,0,0,0"
                                 Click="SearchButton_Click"
                                 Content="Search" />
                         </Grid>
@@ -123,7 +124,6 @@
                         <Button
                             x:Name="AddManualEntryButton"
                             Grid.Column="1"
-                            Margin="0,0,10,0"
                             Click="AddManualEntryButton_Click"
                             Content="Add Book Manually" />
 
@@ -279,15 +279,27 @@
                                         Padding="10,8"
                                         BorderBrush="#E0E0E0"
                                         BorderThickness="0,0,0,1">
+                                        <Border.Style>
+                                            <Style TargetType="Border">
+                                                <Style.Triggers>
+                                                    <!--  Highlight failed scans  -->
+                                                    <DataTrigger Binding="{Binding WasSuccessful}" Value="False">
+                                                        <Setter Property="Background" Value="#FFF8F8" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
                                         <Grid>
                                             <Grid.ColumnDefinitions>
                                                 <ColumnDefinition Width="60" />
                                                 <ColumnDefinition Width="90" />
-                                                <ColumnDefinition Width="140" />
+                                                <ColumnDefinition Width="150" />
                                                 <ColumnDefinition Width="*" />
-                                                <ColumnDefinition Width="130" />
+                                                <ColumnDefinition Width="250" />
                                                 <ColumnDefinition Width="80" />
                                             </Grid.ColumnDefinitions>
+
+                                            <!--  Cover Image  -->
                                             <Border
                                                 Grid.Column="0"
                                                 Width="50"
@@ -296,18 +308,37 @@
                                                 Background="#F5F5F5"
                                                 ClipToBounds="True"
                                                 CornerRadius="2">
-                                                <Image
-                                                    HorizontalAlignment="Center"
-                                                    VerticalAlignment="Center"
-                                                    Source="{Binding Cover}"
-                                                    Stretch="UniformToFill" />
+                                                <Grid>
+                                                    <Image
+                                                        HorizontalAlignment="Center"
+                                                        VerticalAlignment="Center"
+                                                        Source="{Binding Cover}"
+                                                        Stretch="UniformToFill" />
+                                                    <!--  Error Icon Overlay  -->
+                                                    <Border
+                                                        Background="#CC000000"
+                                                        CornerRadius="2"
+                                                        Visibility="{Binding WasSuccessful, Converter={StaticResource InverseBooleanToVisibilityConverter}}">
+                                                        <TextBlock
+                                                            HorizontalAlignment="Center"
+                                                            VerticalAlignment="Center"
+                                                            FontFamily="Segoe MDL2 Assets"
+                                                            FontSize="24"
+                                                            Foreground="#FF6B6B"
+                                                            Text="&#xE783;" />
+                                                    </Border>
+                                                </Grid>
                                             </Border>
+
+                                            <!--  Timestamp  -->
                                             <TextBlock
                                                 Grid.Column="1"
                                                 Margin="10,0,0,0"
                                                 VerticalAlignment="Center"
                                                 Foreground="Gray"
                                                 Text="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss}'}" />
+
+                                            <!--  Barcode  -->
                                             <TextBlock
                                                 Grid.Column="2"
                                                 Margin="10,0"
@@ -316,40 +347,124 @@
                                                 FontSize="14"
                                                 FontWeight="SemiBold"
                                                 Text="{Binding Barcode}" />
-                                            <TextBlock
+
+                                            <!--  Title or Error Message  -->
+                                            <StackPanel
                                                 Grid.Column="3"
                                                 Margin="10,0"
-                                                VerticalAlignment="Center"
-                                                Foreground="Gray"
-                                                Text="{Binding Title}"
-                                                TextTrimming="CharacterEllipsis" />
-                                            <Button
+                                                VerticalAlignment="Center">
+                                                <TextBlock
+                                                    Foreground="Gray"
+                                                    Text="{Binding Title}"
+                                                    TextTrimming="CharacterEllipsis"
+                                                    Visibility="{Binding WasSuccessful, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                <TextBlock
+                                                    FontWeight="SemiBold"
+                                                    Foreground="#FF6B6B"
+                                                    Text="{Binding UserFriendlyError}"
+                                                    TextWrapping="Wrap"
+                                                    Visibility="{Binding WasSuccessful, Converter={StaticResource InverseBooleanToVisibilityConverter}}" />
+                                            </StackPanel>
+
+                                            <!--  Action Buttons  -->
+                                            <StackPanel
                                                 Grid.Column="4"
-                                                Height="30"
                                                 Margin="10,0"
                                                 VerticalAlignment="Center"
-                                                Click="AddToLibrary_Click"
-                                                Content="{Binding ButtonText}"
-                                                IsEnabled="{Binding ButtonEnabled}">
-                                                <Button.Style>
-                                                    <Style TargetType="Button">
-                                                        <Setter Property="Background" Value="#2196F3" />
-                                                        <Setter Property="Foreground" Value="White" />
-                                                        <Setter Property="BorderThickness" Value="0" />
-                                                        <Setter Property="Padding" Value="10,5" />
-                                                        <Setter Property="Cursor" Value="Hand" />
-                                                        <Style.Triggers>
-                                                            <Trigger Property="IsEnabled" Value="False">
-                                                                <Setter Property="Background" Value="#E0E0E0" />
-                                                                <Setter Property="Foreground" Value="#757575" />
-                                                            </Trigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter Property="Background" Value="#1976D2" />
-                                                            </Trigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Button.Style>
-                                            </Button>
+                                                Orientation="Horizontal">
+
+                                                <Button
+                                                    Height="30"
+                                                    Margin="0,0,5,0"
+                                                    Click="AddToLibrary_Click"
+                                                    Visibility="{Binding ShowAddButton, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <Button.Content>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <TextBlock
+                                                                Margin="0,0,5,0"
+                                                                FontFamily="Segoe MDL2 Assets"
+                                                                Text="&#xE73E;"
+                                                                Visibility="{Binding IsInLibrary, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                                            <TextBlock Text="{Binding ButtonText}" />
+                                                        </StackPanel>
+                                                    </Button.Content>
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Background" Value="#2196F3" />
+                                                            <Setter Property="Foreground" Value="White" />
+                                                            <Setter Property="BorderThickness" Value="0" />
+                                                            <Setter Property="Padding" Value="10,5" />
+                                                            <Setter Property="Cursor" Value="Hand" />
+                                                            <Style.Triggers>
+                                                                <!--  Base hover effect (blue)  -->
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#1976D2" />
+                                                                </Trigger>
+                                                                <!--  Green background when in library  -->
+                                                                <DataTrigger Binding="{Binding IsInLibrary}" Value="True">
+                                                                    <Setter Property="Background" Value="#4CAF50" />
+                                                                    <Setter Property="ToolTip" Value="Click to view book details" />
+                                                                </DataTrigger>
+                                                                <!--  Darker green hover for in library  -->
+                                                                <MultiDataTrigger>
+                                                                    <MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsMouseOver}" Value="True" />
+                                                                        <Condition Binding="{Binding IsInLibrary}" Value="True" />
+                                                                    </MultiDataTrigger.Conditions>
+                                                                    <Setter Property="Background" Value="#388E3C" />
+                                                                </MultiDataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+
+                                                <!--  Retry Button (Failed)  -->
+                                                <Button
+                                                    Height="30"
+                                                    Margin="0,0,5,0"
+                                                    Click="RetryScan_Click"
+                                                    Content="Retry"
+                                                    Visibility="{Binding ShowRetryButton, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Background" Value="#FF9800" />
+                                                            <Setter Property="Foreground" Value="White" />
+                                                            <Setter Property="BorderThickness" Value="0" />
+                                                            <Setter Property="Padding" Value="10,5" />
+                                                            <Setter Property="Cursor" Value="Hand" />
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#F57C00" />
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+
+                                                <!--  Add Manually Button (Failed)  -->
+                                                <Button
+                                                    Height="30"
+                                                    Click="AddManuallyFromScan_Click"
+                                                    Content="Add Manually"
+                                                    Visibility="{Binding ShowManualAddButton, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Background" Value="#4CAF50" />
+                                                            <Setter Property="Foreground" Value="White" />
+                                                            <Setter Property="BorderThickness" Value="0" />
+                                                            <Setter Property="Padding" Value="10,5" />
+                                                            <Setter Property="Cursor" Value="Hand" />
+                                                            <Style.Triggers>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#388E3C" />
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </StackPanel>
+
+                                            <!--  Source  -->
                                             <TextBlock
                                                 Grid.Column="5"
                                                 Margin="10,0,0,0"

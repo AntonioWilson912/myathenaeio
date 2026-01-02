@@ -216,12 +216,13 @@
                             <Label
                                 Grid.Row="7"
                                 Grid.Column="0"
-                                Content="Pub. Date:" />
-                            <DatePicker
-                                x:Name="PublicationDatePicker"
+                                Content="Pub. Year:" />
+                            <TextBox
+                                x:Name="PublicationYearTextBox"
                                 Grid.Row="7"
                                 Grid.Column="1"
-                                Margin="5" />
+                                MaxLength="4"
+                                PreviewTextInput="PublicationYear_PreviewTextInput" />
 
                             <Label
                                 Grid.Row="8"

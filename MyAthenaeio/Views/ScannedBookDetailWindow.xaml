@@ -84,8 +84,9 @@
             Padding="20"
             VerticalScrollBarVisibility="Auto">
             <StackPanel>
-                <!--  Description  -->
+                <!--  Description Section  -->
                 <TextBlock
+                    x:Name="DescriptionLabel"
                     Margin="0,0,0,10"
                     FontSize="18"
                     FontWeight="Bold"
@@ -98,65 +99,113 @@
                     BorderBrush="{StaticResource RusticBorder}"
                     BorderThickness="2"
                     CornerRadius="4">
-                    <TextBlock
-                        x:Name="DescriptionText"
-                        Foreground="{StaticResource RusticText}"
-                        LineHeight="22"
-                        TextWrapping="Wrap" />
+                    <StackPanel>
+                        <TextBlock
+                            x:Name="DescriptionText"
+                            Foreground="{StaticResource RusticText}"
+                            LineHeight="22"
+                            TextWrapping="Wrap" />
+
+                        <!--  Technical error details (for failed scans)  -->
+                        <Border
+                            x:Name="TechnicalErrorBorder"
+                            Margin="0,10,0,0"
+                            Padding="10"
+                            Background="#FFF8F8"
+                            BorderBrush="#FFE0E0"
+                            BorderThickness="1"
+                            CornerRadius="3"
+                            Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock
+                                    FontSize="12"
+                                    FontWeight="SemiBold"
+                                    Foreground="#666"
+                                    Text="Technical Details:" />
+                                <TextBlock
+                                    x:Name="TechnicalErrorText"
+                                    Margin="0,5,0,0"
+                                    FontFamily="Consolas"
+                                    FontSize="11"
+                                    Foreground="#999"
+                                    TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
                 </Border>
 
                 <!--  Authors Details  -->
-                <TextBlock
-                    Margin="0,10,0,10"
-                    FontSize="18"
-                    FontWeight="Bold"
-                    Foreground="{StaticResource RusticText}"
-                    Text="Authors" />
-                <ItemsControl x:Name="AuthorsList">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border
-                                Margin="0,0,0,10"
-                                Padding="15"
-                                Background="{StaticResource RusticLight}"
-                                BorderBrush="{StaticResource RusticBorder}"
-                                BorderThickness="2"
-                                CornerRadius="4">
-                                <StackPanel>
-                                    <TextBlock
-                                        FontSize="15"
-                                        FontWeight="SemiBold"
-                                        Foreground="{StaticResource RusticText}"
-                                        Text="{Binding Name}" />
-                                    <TextBlock
-                                        Margin="0,5,0,0"
-                                        Foreground="{StaticResource RusticText}"
-                                        LineHeight="20"
-                                        TextWrapping="Wrap">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Text" Value="{Binding Bio}" />
-                                                <Setter Property="Foreground" Value="{StaticResource RusticText}" />
-                                                <Style.Triggers>
-                                                    <DataTrigger Binding="{Binding Bio}" Value="{x:Null}">
-                                                        <Setter Property="Text" Value="No biography available." />
-                                                        <Setter Property="FontStyle" Value="Italic" />
-                                                        <Setter Property="Foreground" Value="{StaticResource RusticHighlight}" />
-                                                    </DataTrigger>
-                                                    <DataTrigger Binding="{Binding Bio}" Value="">
-                                                        <Setter Property="Text" Value="No biography available." />
-                                                        <Setter Property="FontStyle" Value="Italic" />
-                                                        <Setter Property="Foreground" Value="{StaticResource RusticHighlight}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                <StackPanel x:Name="AuthorsSection">
+                    <TextBlock
+                        x:Name="AuthorsTextBlock"
+                        Margin="0,10,0,10"
+                        FontSize="18"
+                        FontWeight="Bold"
+                        Foreground="{StaticResource RusticText}"
+                        Text="Authors" />
+
+                    <!--  Authors List  -->
+                    <ItemsControl x:Name="AuthorsList">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border
+                                    Margin="0,0,0,10"
+                                    Padding="15"
+                                    Background="{StaticResource RusticLight}"
+                                    BorderBrush="{StaticResource RusticBorder}"
+                                    BorderThickness="2"
+                                    CornerRadius="4">
+                                    <StackPanel>
+                                        <TextBlock
+                                            FontSize="15"
+                                            FontWeight="SemiBold"
+                                            Foreground="{StaticResource RusticText}"
+                                            Text="{Binding Name}" />
+                                        <TextBlock
+                                            Margin="0,5,0,0"
+                                            Foreground="{StaticResource RusticText}"
+                                            LineHeight="20"
+                                            TextWrapping="Wrap">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="{Binding Bio}" />
+                                                    <Setter Property="Foreground" Value="{StaticResource RusticText}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Bio}" Value="{x:Null}">
+                                                            <Setter Property="Text" Value="No biography available." />
+                                                            <Setter Property="FontStyle" Value="Italic" />
+                                                            <Setter Property="Foreground" Value="#999" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Bio}" Value="">
+                                                            <Setter Property="Text" Value="No biography available." />
+                                                            <Setter Property="FontStyle" Value="Italic" />
+                                                            <Setter Property="Foreground" Value="#999" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!--  No Authors Available Message  -->
+                    <Border
+                        x:Name="NoAuthorsMessage"
+                        Padding="15"
+                        Background="{StaticResource RusticLight}"
+                        BorderBrush="{StaticResource RusticBorder}"
+                        BorderThickness="2"
+                        CornerRadius="4"
+                        Visibility="Collapsed">
+                        <TextBlock
+                            FontStyle="Italic"
+                            Foreground="#999"
+                            Text="Author information is not available for this book." />
+                    </Border>
+                </StackPanel>
 
                 <!--  ISBN and Additional Info  -->
                 <TextBlock

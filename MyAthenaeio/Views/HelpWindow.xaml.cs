@@ -23,5 +23,25 @@ namespace MyAthenaeio.Views
         {
             InitializeComponent();
         }
+
+        public void SelectScannerHelpTab()
+        {
+            HelpTabControl.SelectedItem = ScanningHelpTab;
+        }
+
+        public void SelectLoanHelpTab()
+        {
+            HelpTabControl.SelectedItem = LoanHelpTab;
+        }
+
+        public void SelectTroubleshootingTab()
+        {
+            HelpTabControl.SelectedItem = TroubleshootingTab;
+        }
+
+        private void Close_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
     }
 }

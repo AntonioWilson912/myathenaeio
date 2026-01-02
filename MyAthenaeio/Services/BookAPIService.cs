@@ -430,6 +430,29 @@ namespace MyAthenaeio.Services
             _placeholderImage = renderBitmap;
             return _placeholderImage;
         }
+
+        public static string GetUserFriendlyError(string technicalError)
+        {
+            if (string.IsNullOrEmpty(technicalError))
+                return "Unknown error occurred";
+
+            if (technicalError.Contains("API returned 404") || technicalError.Contains("NotFound"))
+                return "This book wasn't found in our online database. You can add it manually instead.";
+
+            if (technicalError.Contains("API returned 503") || technicalError.Contains("Service Unavailable"))
+                return "The book database is temporarily unavailable. Please try again in a few minutes.";
+
+            if (technicalError.Contains("Network error") || technicalError.Contains("timeout"))
+                return "Connection problem detected. Check your internet connection and try again.";
+
+            if (technicalError.Contains("Invalid JSON"))
+                return "Received corrupted data from the server. This might be a temporary issue.";
+
+            if (technicalError.Contains("missing title"))
+                return "The book data is incomplete. Try adding this book manually.";
+
+            return "Unable to retrieve book information. You can try again or add the book manually.";
+        }
     }
 
     internal class Result<T>

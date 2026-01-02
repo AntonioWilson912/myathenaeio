@@ -65,11 +65,7 @@ namespace MyAthenaeio.Views.Books
                 PublisherTextBox.Text = _book.Publisher;
                 DescriptionTextBox.Text = _book.Description;
                 CoverUrlTextBox.Text = _book.CoverImageUrl;
-
-                if (_book.PublicationYear.HasValue)
-                {
-                    PublicationDatePicker.SelectedDate = new DateTime(_book.PublicationYear.Value, 1, 1);
-                }
+                PublicationYearTextBox.Text = _book.PublicationYear.ToString();
 
                 if (!string.IsNullOrEmpty(_book.CoverImageUrl))
                 {
@@ -502,6 +498,12 @@ namespace MyAthenaeio.Views.Books
             }
         }
 
+        private void PublicationYear_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // Only allow digits
+            e.Handled = !System.Text.RegularExpressions.Regex.IsMatch(e.Text, "^[0-9]$");
+        }
+
         private async void AuthorsDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (AuthorsDataGrid.SelectedItem is Author author)
@@ -780,9 +782,26 @@ namespace MyAthenaeio.Views.Books
                 bookToUpdate.Description = DescriptionTextBox.Text.Trim();
                 bookToUpdate.CoverImageUrl = CoverUrlTextBox.Text.Trim();
 
-                if (PublicationDatePicker.SelectedDate.HasValue)
+                // Check for valid publication year
+                var yearText = PublicationYearTextBox.Text.Trim();
+
+                if (string.IsNullOrEmpty(yearText))
                 {
-                    bookToUpdate.PublicationYear = PublicationDatePicker.SelectedDate.Value.Year;
+                    bookToUpdate.PublicationYear = null;
+                }
+                else if (int.TryParse(yearText, out int year) && year <= DateTime.Now.Year + 1)
+                {
+                    bookToUpdate.PublicationYear = year;
+                }
+                else
+                {
+                    MessageBox.Show(
+                        $"Please enter a valid year before {DateTime.Now.Year + 1}.",
+                        "Invalid Year",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    PublicationYearTextBox.Focus();
+                    return;
                 }
 
                 // Update the book

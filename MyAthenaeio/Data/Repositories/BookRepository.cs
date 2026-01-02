@@ -232,7 +232,7 @@ namespace MyAthenaeio.Data.Repositories
                 var firstCopy = new BookCopy
                 {
                     BookId = book.Id,
-                    CopyNumber = "Copy 1",
+                    CopyNumber = "1",
                     AcquisitionDate = DateTime.Now,
                     IsAvailable = true
                 };

@@ -13,6 +13,7 @@ using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
 using MyAthenaeio.Views.Books;
 using System.Diagnostics;
+using MyAthenaeio.Data;
 
 namespace MyAthenaeio.Views
 {
@@ -155,8 +156,29 @@ namespace MyAthenaeio.Views
 
         private void ViewHelp_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Help documentation coming soon!", "Help",
-                MessageBoxButton.OK, MessageBoxImage.Information);
+            var helpWindow = new HelpWindow() { Owner = this };
+            helpWindow.Show();
+        }
+
+        private void ScannerHelp_Click(object sender, RoutedEventArgs e)
+        {
+            var helpWindow = new HelpWindow() { Owner = this };
+            helpWindow.Show();
+            helpWindow.SelectScannerHelpTab();
+        }
+
+        private void LoanHelp_Click(object sender, RoutedEventArgs e)
+        {
+            var helpWindow = new HelpWindow() { Owner = this };
+            helpWindow.Show();
+            helpWindow.SelectLoanHelpTab();
+        }
+
+        private void TroubleshootingHelp_Click(object sender, RoutedEventArgs e)
+        {
+            var helpWindow = new HelpWindow() { Owner = this };
+            helpWindow.Show();
+            helpWindow.SelectTroubleshootingTab();
         }
 
         private void About_Click(object sender, RoutedEventArgs e)
@@ -228,40 +250,43 @@ namespace MyAthenaeio.Views
 
                 // Fetch ISBN details
                 Result<BookApiResponse> bookResult = await BookApiService.FetchBookByISBN(barcode);
-                if (!bookResult.IsSuccess)
+
+                bool wasSuccessful = bookResult.IsSuccess;
+                string? errorMessage = bookResult.Error;
+                BookApiResponse? book = bookResult.Value;
+
+                if (!wasSuccessful)
                 {
-                    // Only show error if window is active or this is a manual scan
+                    // Show user-friendly error
+                    string friendlyError = BookApiService.GetUserFriendlyError(errorMessage ?? "Unknown error");
+
                     if (IsActive || sender == this)
                     {
-                        MessageBox.Show(bookResult.Error, "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        MessageBox.Show(friendlyError, "Scan Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
                     }
                     else
                     {
-                        // Show tray notification for background errors
-                        _trayIconManager.ShowNotification(
-                            "Scan Failed",
-                            $"Failed to fetch book: {barcode}");
+                        _trayIconManager.ShowNotification("Scan Failed", friendlyError);
                     }
-                    return;
                 }
-
-                BookApiResponse book = bookResult.Value!;
 
                 // Check if the book already exists in the DB
                 Book? existingBookInDb = null;
 
-                if (!string.IsNullOrEmpty(book.Isbn13))
+                if (wasSuccessful && book != null)
                 {
-                    existingBookInDb = await LibraryService.GetBookByISBNAsync(book.Isbn13);
-                }
+                    if (!string.IsNullOrEmpty(book.Isbn13))
+                    {
+                        existingBookInDb = await LibraryService.GetBookByISBNAsync(book.Isbn13);
+                    }
 
-                if (existingBookInDb == null && !string.IsNullOrEmpty(book.Isbn10))
-                {
-                    existingBookInDb = await LibraryService.GetBookByISBNAsync(book.Isbn10);
-                }
+                    if (existingBookInDb == null && !string.IsNullOrEmpty(book.Isbn10))
+                    {
+                        existingBookInDb = await LibraryService.GetBookByISBNAsync(book.Isbn10);
+                    }
 
-                // Fallback: check using the scanned barcode itself
-                existingBookInDb ??= await LibraryService.GetBookByISBNAsync(barcode);
+                    existingBookInDb ??= await LibraryService.GetBookByISBNAsync(barcode);
+                }
 
                 bool isInLibrary = existingBookInDb != null;
                 int? bookId = existingBookInDb?.Id;
@@ -271,33 +296,41 @@ namespace MyAthenaeio.Views
                 {
                     Timestamp = DateTime.Now,
                     Barcode = ISBNValidator.FormatISBN(barcode),
-                    Title = book.Title,
-                    Cover = book.Cover ?? BookApiService.CreatePlaceholderImage(),
+                    Title = book?.Title ?? "Unknown",
+                    Cover = book?.Cover ?? BookApiService.CreatePlaceholderImage(),
                     Source = sender == this ? "Manual" : (IsActive ? "Scanner" : "Background"),
                     IsCoverLoaded = true,
                     IsInLibrary = isInLibrary,
-                    BookId = bookId
+                    BookId = bookId,
+                    WasSuccessful = wasSuccessful,
+                    ErrorMessage = errorMessage
                 };
 
                 _scanLog.Insert(0, newEntry);
 
                 // Update UI
-                StatusText.Foreground = Brushes.Black;
-                StatusText.Text = $"Scanned: {ISBNValidator.FormatISBN(barcode)}";
+                if (wasSuccessful)
+                {
+                    StatusText.Foreground = Brushes.Black;
+                    StatusText.Text = $"Scanned: {ISBNValidator.FormatISBN(barcode)}";
+                }
+                else
+                {
+                    StatusText.Foreground = Brushes.Red;
+                    StatusText.Text = $"Scan failed: {BookApiService.GetUserFriendlyError(errorMessage ?? "Unknown error")}";
+                }
+
                 ScanCountText.Text = _scanCount.ToString();
-
-                // Update tray icon count
                 _trayIconManager.UpdateTodayCount(_scanCount);
-
-                // Clear input field
                 ScannerInputField.Clear();
 
-                // Show notification if app is not focused
                 if (!IsActive && sender != this)
                 {
                     _trayIconManager.ShowNotification(
-                        "Book Scanned",
-                        $"ISBN: {ISBNValidator.FormatISBN(barcode)}");
+                        wasSuccessful ? "Book Scanned" : "Scan Failed",
+                        wasSuccessful
+                            ? $"ISBN: {ISBNValidator.FormatISBN(barcode)}"
+                            : BookApiService.GetUserFriendlyError(errorMessage ?? "Unknown error"));
                 }
 
                 SaveScanData();
@@ -308,13 +341,150 @@ namespace MyAthenaeio.Views
 
         #region Scan Log Handling
 
+        private async void RetryScan_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || button.DataContext is not ScanLogEntry entry)
+                return;
+
+            try
+            {
+                Mouse.OverrideCursor = Cursors.Wait;
+
+                string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
+
+                // Try fetching again
+                Result<BookApiResponse> bookResult = await BookApiService.FetchBookByISBN(cleanedBarcode);
+
+                if (bookResult.IsSuccess)
+                {
+                    BookApiResponse book = bookResult.Value!;
+
+                    // Update the entry
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        entry.WasSuccessful = true;
+                        entry.ErrorMessage = null;
+                        entry.Title = book.Title;
+                        entry.Cover = book.Cover ?? BookApiService.CreatePlaceholderImage();
+                        entry.IsCoverLoaded = true;
+
+                        // Check if it's in library
+                        _ = Task.Run(async () =>
+                        {
+                            var existingBook = await LibraryService.GetBookByISBNAsync(cleanedBarcode);
+                            if (existingBook != null)
+                            {
+                                await Dispatcher.InvokeAsync(() =>
+                                {
+                                    entry.IsInLibrary = true;
+                                    entry.BookId = existingBook.Id;
+                                });
+                            }
+                        });
+                    });
+
+                    StatusText.Foreground = Brushes.Green;
+                    StatusText.Text = $"Successfully retrieved: {book.Title}";
+
+                    SaveScanData();
+                }
+                else
+                {
+                    // Still failed
+                    await Dispatcher.InvokeAsync(() =>
+                    {
+                        entry.ErrorMessage = bookResult.Error;
+                    });
+
+                    StatusText.Foreground = Brushes.Red;
+                    StatusText.Text = $"Retry failed: {BookApiService.GetUserFriendlyError(bookResult.Error ?? "Unknown error")}";
+
+                    MessageBox.Show(
+                        BookApiService.GetUserFriendlyError(bookResult.Error ?? "Unknown error"),
+                        "Retry Failed",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error during retry: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
+        }
+
+        private async void AddManuallyFromScan_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button button || button.DataContext is not ScanLogEntry entry)
+                return;
+
+            try
+            {
+                // Pre-populate the ISBN in the add dialog
+                var addWindow = new BookAddDialog(entry.Barcode) { Owner = this };
+
+                if (addWindow.ShowDialog() == true)
+                {
+                    // Book was added successfully
+                    var cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
+                    var addedBook = await LibraryService.GetBookByISBNAsync(cleanedBarcode);
+
+                    if (addedBook != null)
+                    {
+                        await Dispatcher.InvokeAsync(() =>
+                        {
+                            entry.WasSuccessful = true;
+                            entry.ErrorMessage = null;
+                            entry.Title = addedBook.Title;
+                            entry.IsInLibrary = true;
+                            entry.BookId = addedBook.Id;
+                        });
+
+                        StatusText.Foreground = Brushes.Green;
+                        StatusText.Text = $"Manually added: {addedBook.Title}";
+
+                        await LoadBooks();
+                        SaveScanData();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error adding book manually: {ex.Message}",
+                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private async void AddToLibrary_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button button || button.DataContext is not ScanLogEntry entry)
                 return;
 
-            if (entry.IsInLibrary)
+            // If already in library, show the book details instead
+            if (entry.IsInLibrary && entry.BookId.HasValue)
+            {
+                try
+                {
+                    Mouse.OverrideCursor = Cursors.Wait;
+
+                    var detailWindow = new BookDetailWindow(entry.BookId.Value) { Owner = this };
+                    detailWindow.ShowDialog();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error opening book details: {ex.Message}",
+                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                finally
+                {
+                    Mouse.OverrideCursor = null;
+                }
                 return;
+            }
 
             string barcodeToAdd = entry.Barcode;
 
@@ -370,6 +540,8 @@ namespace MyAthenaeio.Views
                         {
                             scanEntry.IsInLibrary = true;
                             scanEntry.BookId = addedBook.Id;
+                            scanEntry.WasSuccessful = true;
+                            scanEntry.ErrorMessage = null;
                         }
                     }
                 });
@@ -382,6 +554,9 @@ namespace MyAthenaeio.Views
 
                 // Refresh the library view
                 await LoadBooks();
+
+                // Save updated scan data
+                SaveScanData();
             }
             catch (InvalidOperationException ex)
             {
@@ -404,6 +579,8 @@ namespace MyAthenaeio.Views
                             }
                         }
                     });
+
+                    SaveScanData(); // Save the updated state
                 }
 
                 MessageBox.Show(ex.Message, "Already in Library",
@@ -429,20 +606,32 @@ namespace MyAthenaeio.Views
             {
                 Mouse.OverrideCursor = Cursors.Wait;
 
-                // Fetch full book details
-                string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
-                Result<BookApiResponse> bookResult = await BookApiService.FetchFullBookByISBN(cleanedBarcode);
-
-                if (!bookResult.IsSuccess)
+                if (entry.WasSuccessful)
                 {
-                    MessageBox.Show($"Could not load book details: {bookResult.Error}",
-                        "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    return;
-                }
+                    // Fetch full book details for successful scans
+                    string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
+                    Result<BookApiResponse> bookResult = await BookApiService.FetchFullBookByISBN(cleanedBarcode);
 
-                // Open detail window
-                var detailWindow = new ScannedBookDetailWindow(bookResult.Value!) { Owner = this };
-                detailWindow.ShowDialog();
+                    if (!bookResult.IsSuccess)
+                    {
+                        MessageBox.Show($"Could not load book details: {bookResult.Error}",
+                            "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        return;
+                    }
+
+                    // Open detail window
+                    var detailWindow = new ScannedBookDetailWindow(bookResult.Value!) { Owner = this };
+                    detailWindow.ShowDialog();
+                }
+                else
+                {
+                    // Show error details for failed scans
+                    var detailWindow = new ScannedBookDetailWindow(entry.Barcode, entry.ErrorMessage ?? "Unknown error")
+                    {
+                        Owner = this
+                    };
+                    detailWindow.ShowDialog();
+                }
             }
             finally
             {
@@ -585,12 +774,16 @@ namespace MyAthenaeio.Views
                 {
                     ScanCount = _scanCount,
                     ScanLog = [.. _scanLog.Select(entry => new ScanLogEntry
-                    {
-                        Timestamp = entry.Timestamp,
-                        Barcode = entry.Barcode,
-                        Title = entry.Title,
-                        Source = entry.Source
-                    })]
+            {
+                Timestamp = entry.Timestamp,
+                Barcode = entry.Barcode,
+                Title = entry.Title,
+                Source = entry.Source,
+                WasSuccessful = entry.WasSuccessful,
+                ErrorMessage = entry.ErrorMessage,
+                IsInLibrary = entry.IsInLibrary,
+                BookId = entry.BookId
+            })]
                 };
 
                 string json = JsonSerializer.Serialize(dataToSave, SerializerOptions);
@@ -598,7 +791,7 @@ namespace MyAthenaeio.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to save scan data: {ex.Message}");
+                Debug.WriteLine($"Failed to save scan data: {ex.Message}");
             }
         }
 
@@ -622,7 +815,7 @@ namespace MyAthenaeio.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load book data: {ex.Message}");
+                Debug.WriteLine($"Failed to load book data: {ex.Message}");
             }
         }
 
@@ -651,7 +844,11 @@ namespace MyAthenaeio.Views
                         Title = entry.Title,
                         Source = entry.Source,
                         Cover = BookApiService.CreatePlaceholderImage(),
-                        IsCoverLoaded = false
+                        IsCoverLoaded = false,
+                        WasSuccessful = entry.WasSuccessful,
+                        ErrorMessage = entry.ErrorMessage,
+                        IsInLibrary = entry.IsInLibrary,
+                        BookId = entry.BookId
                     });
                 }
 
@@ -680,6 +877,7 @@ namespace MyAthenaeio.Views
                 var allBooks = await LibraryService.GetAllBooksAsync();
                 var booksByIsbn = new Dictionary<string, (bool IsInLibrary, int BookId)>();
 
+                // Build lookup dictionary with all ISBN variants
                 foreach (var book in allBooks)
                 {
                     var (isbn10, isbn13) = ISBNValidator.GetBothISBNFormats(book.ISBN);
@@ -692,22 +890,56 @@ namespace MyAthenaeio.Views
                     {
                         booksByIsbn[isbn13] = (true, book.Id);
                     }
-                }
 
-                foreach (var entry in _scanLog)
-                {
-                    string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
-
-                    if (booksByIsbn.TryGetValue(cleanedBarcode, out var bookInfo))
+                    // Also add the original ISBN as stored in the database
+                    string cleanedDbIsbn = ISBNValidator.CleanISBN(book.ISBN);
+                    if (!string.IsNullOrEmpty(cleanedDbIsbn))
                     {
-                        entry.IsInLibrary = bookInfo.IsInLibrary;
-                        entry.BookId = bookInfo.BookId;
+                        booksByIsbn[cleanedDbIsbn] = (true, book.Id);
                     }
                 }
+
+                // Update all scan log entries
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    foreach (var entry in _scanLog)
+                    {
+                        string cleanedBarcode = ISBNValidator.CleanISBN(entry.Barcode);
+
+                        // Try direct lookup first
+                        if (booksByIsbn.TryGetValue(cleanedBarcode, out var bookInfo))
+                        {
+                            entry.IsInLibrary = bookInfo.IsInLibrary;
+                            entry.BookId = bookInfo.BookId;
+                        }
+                        else
+                        {
+                            // Try both ISBN formats
+                            var (isbn10, isbn13) = ISBNValidator.GetBothISBNFormats(cleanedBarcode);
+
+                            if (!string.IsNullOrEmpty(isbn10) && booksByIsbn.TryGetValue(isbn10, out bookInfo))
+                            {
+                                entry.IsInLibrary = bookInfo.IsInLibrary;
+                                entry.BookId = bookInfo.BookId;
+                            }
+                            else if (!string.IsNullOrEmpty(isbn13) && booksByIsbn.TryGetValue(isbn13, out bookInfo))
+                            {
+                                entry.IsInLibrary = bookInfo.IsInLibrary;
+                                entry.BookId = bookInfo.BookId;
+                            }
+                            else
+                            {
+                                // Not in library
+                                entry.IsInLibrary = false;
+                                entry.BookId = null;
+                            }
+                        }
+                    }
+                });
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error updating scan history from DB: {ex.Message}");
+                Debug.WriteLine($"Error updating scan history from DB: {ex.Message}");
             }
         }
 
