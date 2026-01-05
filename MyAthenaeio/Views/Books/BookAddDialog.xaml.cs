@@ -121,12 +121,6 @@ namespace MyAthenaeio.Views.Books
             }
         }
 
-        private void PublicationYear_PreviewTextInput(object sender, TextCompositionEventArgs e)
-        {
-            // Only allow digits
-            e.Handled = !System.Text.RegularExpressions.Regex.IsMatch(e.Text, "^[0-9]$");
-        }
-
         private void FetchCover_Click(object sender, RoutedEventArgs e)
         {
             var coverUrl = CoverUrlTextBox.Text;

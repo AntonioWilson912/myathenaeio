@@ -498,12 +498,6 @@ namespace MyAthenaeio.Views.Books
             }
         }
 
-        private void PublicationYear_PreviewTextInput(object sender, TextCompositionEventArgs e)
-        {
-            // Only allow digits
-            e.Handled = !System.Text.RegularExpressions.Regex.IsMatch(e.Text, "^[0-9]$");
-        }
-
         private async void AuthorsDataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (AuthorsDataGrid.SelectedItem is Author author)

@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="MyAthenaeio.Views.Borrowers.BorrowerDetailWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -7,28 +7,23 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Borrower Details"
     Width="800"
-    Height="650"
+    Height="800"
     WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
     <Window.Resources>
         <ResourceDictionary Source="/Resources/Styles.xaml" />
     </Window.Resources>
 
-    <Grid Margin="15">
+    <Grid Background="{StaticResource DarkAcademiaBackground}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
+        <Border Grid.Row="0" Style="{StaticResource DarkAcademiaBorderStyle}">
             <Grid>
-                <TextBlock
-                    VerticalAlignment="Center"
-                    FontSize="20"
-                    FontWeight="Bold"
-                    Foreground="White"
-                    Text="Borrower Details" />
+                <TextBlock Style="{StaticResource HeaderTextBlockStyle}" Text="Borrower Details" />
                 <Button
                     HorizontalAlignment="Right"
                     Click="Edit_Click"
@@ -36,16 +31,26 @@
             </Grid>
         </Border>
 
-        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer
+            Grid.Row="1"
+            Margin="15"
+            VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <GroupBox Header="Borrower Information">
                     <Grid>
+                        <Grid.Resources>
+                            <Style BasedOn="{StaticResource {x:Type Label}}" TargetType="Label">
+                                <Setter Property="Margin" Value="0,0,10,10" />
+                            </Style>
+                            <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
+                                <Setter Property="Margin" Value="0,0,0,10" />
+                            </Style>
+                        </Grid.Resources>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="150" />
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
                             <RowDefinition Height="Auto" />
@@ -125,6 +130,14 @@
 
                 <GroupBox Header="Loan Summary">
                     <Grid>
+                        <Grid.Resources>
+                            <Style BasedOn="{StaticResource {x:Type Label}}" TargetType="Label">
+                                <Setter Property="Margin" Value="0,0,10,10" />
+                            </Style>
+                            <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
+                                <Setter Property="Margin" Value="0,0,0,10" />
+                            </Style>
+                        </Grid.Resources>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="150" />
                             <ColumnDefinition Width="*" />
@@ -170,7 +183,7 @@
                     </Grid>
                 </GroupBox>
 
-                <TabControl Height="350">
+                <TabControl Height="350" Margin="0,10,0,0">
                     <TabItem Header="Active Loans">
                         <DataGrid
                             x:Name="ActiveLoansDataGrid"
@@ -198,7 +211,7 @@
                                         <Style TargetType="TextBlock">
                                             <Style.Triggers>
                                                 <DataTrigger Binding="{Binding IsOverdue}" Value="True">
-                                                    <Setter Property="Foreground" Value="Red" />
+                                                    <Setter Property="Foreground" Value="{StaticResource DarkAcademiaRed}" />
                                                     <Setter Property="FontWeight" Value="Bold" />
                                                 </DataTrigger>
                                             </Style.Triggers>
@@ -206,7 +219,7 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn
-                                    Width="80"
+                                    Width="90"
                                     Binding="{Binding RenewalCount}"
                                     Header="Renewals" />
                                 <DataGridTemplateColumn Width="80" Header="Overdue">
@@ -235,15 +248,15 @@
                                     Binding="{Binding BookCopy.Book.Title}"
                                     Header="Title" />
                                 <DataGridTextColumn
-                                    Width="100"
+                                    Width="120"
                                     Binding="{Binding CheckoutDate, StringFormat='{}{0:yyyy-MM-dd}'}"
                                     Header="Loan Date" />
                                 <DataGridTextColumn
-                                    Width="100"
+                                    Width="120"
                                     Binding="{Binding ReturnDate, StringFormat='{}{0:yyyy-MM-dd}'}"
                                     Header="Return Date" />
                                 <DataGridTextColumn
-                                    Width="80"
+                                    Width="90"
                                     Binding="{Binding RenewalCount}"
                                     Header="Renewals" />
                             </DataGrid.Columns>
@@ -255,8 +268,7 @@
 
         <Button
             Grid.Row="2"
-            Width="100"
-            Margin="0,15,0,0"
+            Margin="15"
             HorizontalAlignment="Right"
             Click="Close_Click"
             Content="Close" />

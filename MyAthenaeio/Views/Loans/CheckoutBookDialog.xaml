@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="MyAthenaeio.Views.Loans.CheckoutBookDialog"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -7,14 +7,14 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     Title="Check Out a Book"
     Width="600"
-    Height="450"
+    Height="650"
     WindowStartupLocation="CenterOwner"
     mc:Ignorable="d">
     <Window.Resources>
         <ResourceDictionary Source="/Resources/Styles.xaml" />
     </Window.Resources>
 
-    <Grid Margin="15">
+    <Grid Background="{StaticResource DarkAcademiaBackground}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -23,26 +23,17 @@
         </Grid.RowDefinitions>
 
         <!--  Header  -->
-        <Border
-            Grid.Row="0"
-            Margin="0,0,0,15"
-            Padding="15"
-            Background="{StaticResource RusticAccent}"
-            CornerRadius="5">
-            <TextBlock
-                FontSize="18"
-                FontWeight="Bold"
-                Foreground="White"
-                Text="Check Out a Book" />
+        <Border Grid.Row="0" Style="{StaticResource DarkAcademiaBorderStyle}">
+            <TextBlock Style="{StaticResource HeaderTextBlockStyle}" Text="Check Out a Book" />
         </Border>
 
         <!--  Book Info  -->
         <Border
             Grid.Row="1"
-            Margin="0,0,0,10"
+            Margin="15"
             Padding="10"
-            Background="#F5F5F5"
-            BorderBrush="#E0E0E0"
+            Background="{StaticResource DarkAcademiaPanel}"
+            BorderBrush="{StaticResource DarkAcademiaBorder}"
             BorderThickness="1"
             CornerRadius="3">
             <StackPanel>
@@ -55,16 +46,34 @@
                     x:Name="CopyInfoTextBlock"
                     Margin="0,5,0,0"
                     FontSize="12"
-                    Foreground="Gray" />
+                    Foreground="{StaticResource DarkAcademiaTextMuted}" />
             </StackPanel>
         </Border>
 
         <!--  Checkout Form  -->
         <GroupBox
             Grid.Row="2"
+            Margin="15"
             Padding="10"
             Header="Checkout Information">
             <Grid>
+                <Grid.Resources>
+                    <Style BasedOn="{StaticResource {x:Type Label}}" TargetType="Label">
+                        <Setter Property="Margin" Value="0,0,10,10" />
+                    </Style>
+                    <Style BasedOn="{StaticResource {x:Type TextBox}}" TargetType="TextBox">
+                        <Setter Property="Margin" Value="0,0,0,10" />
+                    </Style>
+                    <Style BasedOn="{StaticResource {x:Type TextBlock}}" TargetType="TextBlock">
+                        <Setter Property="Margin" Value="0,0,0,10" />
+                    </Style>
+                    <Style BasedOn="{StaticResource {x:Type DatePicker}}" TargetType="DatePicker">
+                        <Setter Property="Margin" Value="0,0,0,10" />
+                    </Style>
+                    <Style BasedOn="{StaticResource {x:Type ComboBox}}" TargetType="ComboBox">
+                        <Setter Property="Margin" Value="0,0,0,10" />
+                    </Style>
+                </Grid.Resources>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="120" />
                     <ColumnDefinition Width="*" />
@@ -85,7 +94,6 @@
                     x:Name="BorrowerComboBox"
                     Grid.Row="0"
                     Grid.Column="1"
-                    Margin="5"
                     IsEditable="True"
                     IsTextSearchEnabled="True"
                     SelectionChanged="BorrowerComboBox_SelectionChanged"
@@ -96,7 +104,7 @@
                                 <TextBlock Text="{Binding Name}" />
                                 <TextBlock
                                     FontWeight="Bold"
-                                    Foreground="Red"
+                                    Foreground="{StaticResource DarkAcademiaRed}"
                                     Text=" (Overdue)"
                                     Visibility="{Binding HasOverdueLoans, Converter={StaticResource BooleanToVisibilityConverter}}" />
                             </StackPanel>
@@ -112,9 +120,8 @@
                     x:Name="BorrowerEmailTextBlock"
                     Grid.Row="1"
                     Grid.Column="1"
-                    Margin="5"
                     VerticalAlignment="Center"
-                    Foreground="Gray" />
+                    Foreground="{StaticResource DarkAcademiaTextMuted}" />
 
                 <Label
                     Grid.Row="2"
@@ -123,8 +130,7 @@
                 <DatePicker
                     x:Name="CheckoutDatePicker"
                     Grid.Row="2"
-                    Grid.Column="1"
-                    Margin="5" />
+                    Grid.Column="1" />
 
                 <Label
                     Grid.Row="3"
@@ -133,8 +139,7 @@
                 <DatePicker
                     x:Name="DueDatePicker"
                     Grid.Row="3"
-                    Grid.Column="1"
-                    Margin="5" />
+                    Grid.Column="1" />
 
                 <Label
                     Grid.Row="4"
@@ -145,7 +150,6 @@
                     Grid.Row="4"
                     Grid.Column="1"
                     Height="80"
-                    Margin="5"
                     AcceptsReturn="True"
                     TextWrapping="Wrap"
                     VerticalScrollBarVisibility="Auto" />
@@ -155,17 +159,11 @@
         <!--  Action Buttons  -->
         <StackPanel
             Grid.Row="3"
-            Margin="0,15,0,0"
+            Margin="15"
             HorizontalAlignment="Right"
             Orientation="Horizontal">
-            <Button
-                Width="120"
-                Click="Checkout_Click"
-                Content="Check Out" />
-            <Button
-                Width="100"
-                Click="Cancel_Click"
-                Content="Cancel" />
+            <Button Click="Checkout_Click" Content="Check Out" />
+            <Button Click="Cancel_Click" Content="Cancel" />
         </StackPanel>
     </Grid>
 </Window>

@@ -14,25 +14,21 @@
         <ResourceDictionary Source="/Resources/Styles.xaml" />
     </Window.Resources>
 
-    <Grid>
+    <Grid Background="{StaticResource DarkAcademiaBackground}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
-            <TextBlock
-                FontSize="20"
-                FontWeight="Bold"
-                Foreground="White"
-                Text="Help Documentation" />
+        <Border Grid.Row="0" Style="{StaticResource DarkAcademiaBorderStyle}">
+            <TextBlock Style="{StaticResource HeaderTextBlockStyle}" Text="Help Documentation" />
         </Border>
 
         <TabControl
             x:Name="HelpTabControl"
             Grid.Row="1"
-            Margin="10">
+            Margin="15">
             <TabItem Header="Getting Started">
                 <ScrollViewer Padding="10" VerticalScrollBarVisibility="Auto">
                     <StackPanel>
@@ -279,6 +275,7 @@
 
         <Button
             Grid.Row="2"
+            Margin="15"
             HorizontalAlignment="Right"
             Click="Close_Click"
             Content="Close" />

@@ -48,7 +48,7 @@ namespace MyAthenaeio.Views.Loans
                 BorrowerContactTextBlock.Text = loan.Borrower.Email ?? loan.Borrower.Phone ?? "No contact info";
 
                 LoanDateTextBlock.Text = loan.CheckoutDate.ToString("yyyy-MM-dd");
-                DueDateTextBlock.Text = loan.DueDate.ToString("yyyy-MM-dd");
+                DueDateTextBlock.Text = loan.EffectiveDueDate.ToString("yyyy-MM-dd");
                 ReturnDateTextBlock.Text = loan.ReturnDate?.ToString("yyyy-MM-dd") ?? "Not returned";
                 RenewalsTextBlock.Text = $"{loan.RenewalCount} / {loan.MaxRenewalsAllowed} (Remaining: {loan.RenewalsRemaining})";
                 NotesTextBox.Text = loan.Notes;

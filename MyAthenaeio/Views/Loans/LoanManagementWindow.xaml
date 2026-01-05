@@ -1,4 +1,4 @@
-﻿<Window
+<Window
     x:Class="MyAthenaeio.Views.Loans.LoanManagementWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -14,27 +14,23 @@
         <ResourceDictionary Source="/Resources/Styles.xaml" />
     </Window.Resources>
 
-    <Grid Margin="15">
+    <Grid Background="{StaticResource DarkAcademiaBackground}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <Border Grid.Row="0" Style="{StaticResource RusticBorderStyle}">
+        <Border Grid.Row="0" Style="{StaticResource DarkAcademiaBorderStyle}">
             <Grid>
                 <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                     <StackPanel Orientation="Vertical">
-                        <TextBlock
-                            FontSize="20"
-                            FontWeight="Bold"
-                            Foreground="White"
-                            Text="Loan Management" />
+                        <TextBlock Style="{StaticResource HeaderTextBlockStyle}" Text="Loan Management" />
                         <TextBlock
                             x:Name="BookInfoTextBlock"
                             Margin="0,5,0,0"
                             FontSize="14"
-                            Foreground="White" />
+                            Foreground="{StaticResource DarkAcademiaText}" />
                     </StackPanel>
                 </StackPanel>
                 <Button
@@ -44,7 +40,7 @@
             </Grid>
         </Border>
 
-        <TabControl Grid.Row="1">
+        <TabControl Grid.Row="1" Margin="15">
             <!--  Checkout Tab  -->
             <TabItem x:Name="CheckoutTab" Header="Checkout">
                 <Grid Margin="10">
@@ -110,7 +106,7 @@
                                             <TextBlock Text="{Binding Name}" />
                                             <TextBlock
                                                 FontWeight="Bold"
-                                                Foreground="Red"
+                                                Foreground="{StaticResource DarkAcademiaRed}"
                                                 Text=" (Overdue)"
                                                 Visibility="{Binding HasOverdueLoans, Converter={StaticResource BooleanToVisibilityConverter}}" />
                                         </StackPanel>
@@ -196,15 +192,15 @@
                         Grid.Row="0"
                         Margin="5"
                         Padding="10"
-                        Background="LightYellow"
-                        BorderBrush="Orange"
+                        Background="{StaticResource DarkAcademiaGold}"
+                        BorderBrush="{StaticResource DarkAcademiaAmber}"
                         BorderThickness="2"
                         CornerRadius="5"
                         Visibility="{Binding HasOverdueLoans, Converter={StaticResource BooleanToVisibilityConverter}}">
                         <TextBlock
                             x:Name="OverdueWarningTextBlock"
                             FontWeight="Bold"
-                            Foreground="DarkRed" />
+                            Foreground="{StaticResource DarkAcademiaRed}" />
                     </Border>
 
                     <DataGrid
@@ -234,7 +230,7 @@
                                     <Style TargetType="TextBlock">
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding IsOverdue}" Value="True">
-                                                <Setter Property="Foreground" Value="Red" />
+                                                <Setter Property="Foreground" Value="{StaticResource DarkAcademiaRed}" />
                                                 <Setter Property="FontWeight" Value="Bold" />
                                             </DataTrigger>
                                         </Style.Triggers>
@@ -256,7 +252,7 @@
                                                 <Style TargetType="CheckBox">
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding IsOverdue}" Value="True">
-                                                            <Setter Property="Foreground" Value="Red" />
+                                                            <Setter Property="Foreground" Value="{StaticResource DarkAcademiaRed}" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -270,19 +266,19 @@
                                     <DataTemplate>
                                         <StackPanel Orientation="Horizontal">
                                             <Button
-                                                Margin="2"
+                                                Margin="5"
                                                 Padding="5,2"
                                                 Click="Return_Click"
                                                 Content="Return"
                                                 Tag="{Binding}" />
                                             <Button
-                                                Margin="2"
+                                                Margin="5"
                                                 Padding="5,2"
                                                 Click="Renew_Click"
                                                 Content="Renew"
                                                 Tag="{Binding}" />
                                             <Button
-                                                Margin="2"
+                                                Margin="5"
                                                 Padding="5,2"
                                                 Click="ViewLoanDetails_Click"
                                                 Content="Details"
@@ -331,8 +327,7 @@
 
         <Button
             Grid.Row="2"
-            Width="100"
-            Margin="0,15,0,0"
+            Margin="15"
             HorizontalAlignment="Right"
             Click="Close_Click"
             Content="Close" />
