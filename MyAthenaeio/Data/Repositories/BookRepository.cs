@@ -49,21 +49,49 @@ namespace MyAthenaeio.Data.Repositories
             return await query.FirstOrDefaultAsync(book => book.ISBN == isbn);
         }
 
-        public async Task<List<Book>> SearchAsync(string query, BookIncludeOptions? options = null)
+        public async Task<List<Book>> SearchAsync(string? query = null,
+            int? authorId = null,
+            int? genreId = null,
+            int? tagId = null,
+            int? collectionId = null,
+            BookIncludeOptions? options = null)
         {
-            options ??= BookIncludeOptions.Default;
-            query = query.ToLower();
+            options ??= BookIncludeOptions.Search;
 
             var booksQuery = BuildQuery(_dbSet.AsQueryable(), options);
-
-            return await booksQuery
-                .Where(b => b.Title.ToLower().Contains(query) ||
+            
+            // Apply search text if provided
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                query = query.ToLower();
+                booksQuery = booksQuery.Where(b => b.Title.ToLower().Contains(query) ||
                             (b.Subtitle != null && b.Subtitle.ToLower().Contains(query)) ||
                             (b.Description != null && b.Description.ToLower().Contains(query)) ||
-                            b.ISBN.Contains(query) ||
-                            (options.IncludeAuthors && b.Authors.Any(a => a.Name.ToLower().Contains(query))))
-                .OrderBy(b => b.Title)
-                .ToListAsync();
+                            b.ISBN.Contains(query));
+            }
+
+            // Apply filters
+            if (authorId.HasValue)
+            {
+                booksQuery = booksQuery.Where(b => b.Authors.Any(a => a.Id == authorId.Value));
+            }
+
+            if (genreId.HasValue)
+            {
+                booksQuery = booksQuery.Where(b => b.Genres.Any(g => g.Id == genreId.Value));
+            }
+
+            if (tagId.HasValue)
+            {
+                booksQuery = booksQuery.Where(b => b.Tags.Any(t => t.Id == tagId.Value));
+            }
+
+            if (collectionId.HasValue)
+            {
+                booksQuery = booksQuery.Where(b => b.Collections.Any(c => c.Id == collectionId.Value));
+            }
+
+            return await booksQuery.OrderBy(b => b.Title).ToListAsync();
         }
 
         public async Task<List<Book>> GetByAuthorAsync(int authorId, BookIncludeOptions? options = null)

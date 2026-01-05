@@ -216,6 +216,7 @@ namespace MyAthenaeio.Data.Repositories
             var renewal = new Renewal
             {
                 LoanId = loanId,
+                OldDueDate = loan.GetEffectiveDueDate(),
                 RenewalDate = DateTime.UtcNow,
                 NewDueDate = loan.GetEffectiveDueDate().AddDays(loan.LoanPeriodDays)
             };

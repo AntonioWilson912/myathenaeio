@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace MyAthenaeio.Data.Repositories
 {

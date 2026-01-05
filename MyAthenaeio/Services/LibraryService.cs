@@ -202,10 +202,15 @@ namespace MyAthenaeio.Services
         /// <summary>
         /// Searches for books by title, author, ISBN, or description.
         /// </summary>
-        public static async Task<List<Book>> SearchBooksAsync(string query, BookIncludeOptions? options = null)
+        public static async Task<List<Book>> SearchBooksAsync(string? query = null,
+            int? authorId = null,
+            int? genreId = null,
+            int? tagId = null,
+            int? collectionId = null,
+            BookIncludeOptions? options = null)
         {
             using var repos = new RepositoryFactory();
-            return await repos.Books.SearchAsync(query, options);
+            return await repos.Books.SearchAsync(query, authorId, genreId, tagId, collectionId, options);
         }
 
         /// <summary>

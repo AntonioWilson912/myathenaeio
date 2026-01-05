@@ -14,6 +14,7 @@ using MyAthenaeio.Models.ViewModels;
 using MyAthenaeio.Views.Books;
 using System.Diagnostics;
 using MyAthenaeio.Data;
+using System.Threading.Tasks;
 
 namespace MyAthenaeio.Views
 {
@@ -32,7 +33,11 @@ namespace MyAthenaeio.Views
         private readonly SemaphoreSlim _coverLoadSemaphore = new(3);
 
         private readonly ObservableCollection<Book> _books;
-        private string _searchText = "";
+        private string? _searchText = null;
+        private int? _selectedAuthorId = null;
+        private int? _selectedGenreId = null;
+        private int? _selectedTagId = null;
+        private int? _selectedCollectionId = null;
 
         private static string LibrarySaveFilePath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -73,7 +78,11 @@ namespace MyAthenaeio.Views
             {
                 _scannerManager.SetMode(ScannerMode.FocusedFieldOnly);
                 ScannerInputField.Focus();
-                await LoadBooks();
+                await LoadAuthorsFilter();
+                await LoadGenresFilter();
+                await LoadTagsFilter();
+                await LoadCollectionsFilter();
+                await SearchBooks();
             };
 
             // Handle window state changes
@@ -447,7 +456,7 @@ namespace MyAthenaeio.Views
                         StatusText.Foreground = Brushes.Green;
                         StatusText.Text = $"Manually added: {addedBook.Title}";
 
-                        await LoadBooks();
+                        await SearchBooks();
                         SaveScanData();
                     }
                 }
@@ -469,8 +478,6 @@ namespace MyAthenaeio.Views
             {
                 try
                 {
-                    Mouse.OverrideCursor = Cursors.Wait;
-
                     var detailWindow = new BookDetailWindow(entry.BookId.Value) { Owner = this };
                     detailWindow.ShowDialog();
                 }
@@ -478,10 +485,6 @@ namespace MyAthenaeio.Views
                 {
                     MessageBox.Show($"Error opening book details: {ex.Message}",
                         "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                }
-                finally
-                {
-                    Mouse.OverrideCursor = null;
                 }
                 return;
             }
@@ -553,7 +556,7 @@ namespace MyAthenaeio.Views
                     "Success", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // Refresh the library view
-                await LoadBooks();
+                await SearchBooks();
 
                 // Save updated scan data
                 SaveScanData();
@@ -1046,25 +1049,61 @@ namespace MyAthenaeio.Views
 
         #region Library Tab Event Handlers
 
+        private async void AuthorsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (AuthorsComboBox.SelectedItem is FilterOption selected)
+            {
+                _selectedAuthorId = selected.Value;
+                await SearchBooks();
+            }
+        }
+
+        private async void GenresComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (GenresComboBox.SelectedItem is FilterOption selected)
+            {
+                _selectedGenreId = selected.Value;
+                await SearchBooks();
+            }
+        }
+
+        private async void TagsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (TagsComboBox.SelectedItem is FilterOption selected)
+            {
+                _selectedTagId = selected.Value;
+                await SearchBooks();
+            }
+        }
+
+        private async void CollectionsComboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CollectionsComboBox.SelectedItem is FilterOption selected)
+            {
+                _selectedCollectionId = selected.Value;
+                await SearchBooks();
+            }
+        }
+
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (sender is TextBox textBox)
             {
-                _searchText = textBox.Text;
+                _searchText = string.IsNullOrWhiteSpace(textBox.Text) ? null : textBox.Text;
             }
         }
 
-        private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        private async void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Enter)
             {
-                SearchBooks();
+                await SearchBooks();
             }
         }
 
-        private void SearchButton_Click(object sender, RoutedEventArgs e)
+        private async void SearchButton_Click(object sender, RoutedEventArgs e)
         {
-            SearchBooks();
+            await SearchBooks();
         }
 
         private async void AddManualEntryButton_Click(object sender, RoutedEventArgs e)
@@ -1073,13 +1112,8 @@ namespace MyAthenaeio.Views
 
             if (addWindow.ShowDialog() == true)
             {
-                await LoadBooks();
+                await SearchBooks();
             }
-        }
-
-        private async void RefreshButton_Click(object sender, RoutedEventArgs e)
-        {
-            await LoadBooks();
         }
 
         private async void DataGrid_MouseDoubleClick(object sender, MouseButtonEventArgs e)
@@ -1100,31 +1134,28 @@ namespace MyAthenaeio.Views
 
         private async Task ViewBookDetails(Book book)
         {
-
-            Mouse.OverrideCursor = Cursors.Wait;
-
             var detailWindow = new BookDetailWindow(book.Id) { Owner = this };
 
             if (detailWindow.ShowDialog() == true)
             {
                 // Refresh the book list if changes were made
-                await LoadBooks();
+                await SearchBooks();
             }
         }
 
-        private async void SearchBooks()
+        private async Task SearchBooks()
         {
             try
             {
                 Mouse.OverrideCursor = Cursors.Wait;
 
-                if (string.IsNullOrWhiteSpace(_searchText))
-                {
-                    await LoadBooks();
-                    return;
-                }
-
-                var books = await LibraryService.SearchBooksAsync(_searchText, BookIncludeOptions.Search);
+                var books = await LibraryService.SearchBooksAsync(
+                    _searchText,
+                    _selectedAuthorId,
+                    _selectedGenreId,
+                    _selectedTagId,
+                    _selectedCollectionId,
+                    BookIncludeOptions.Search);
 
                 _books.Clear();
                 foreach (var book in books)
@@ -1143,31 +1174,124 @@ namespace MyAthenaeio.Views
             }
         }
 
-        private async Task LoadBooks()
+        private async Task LoadAuthorsFilter()
         {
             try
             {
-                Mouse.OverrideCursor = Cursors.Wait;
+                var authors = await LibraryService.GetAllAuthorsAsync();
 
-                var books = await LibraryService.GetAllBooksAsync(BookIncludeOptions.Search);
-
-                _books.Clear();
-                foreach (var book in books)
+                var filterOptions = new List<FilterOption>
                 {
-                    _books.Add(book);
-                }
+                    new() { Display = "All Authors", Value = null}
+                };
+
+                filterOptions.AddRange(authors
+                    .OrderBy(a => a.Name)
+                    .Select(a => new FilterOption
+                    {
+                        Display = a.Name,
+                        Value = a.Id
+                    }));
+
+                AuthorsComboBox.ItemsSource = filterOptions;
+                AuthorsComboBox.SelectedIndex = 0;
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"Failed to load books: {ex.Message}",
-                    "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                Debug.WriteLine($"Failed to load authors filter: {ex.Message}");
             }
-            finally
+        }
+
+        private async Task LoadGenresFilter()
+        {
+            try
             {
-                Mouse.OverrideCursor = null;
+                var genres = await LibraryService.GetAllGenresAsync();
+
+                var filterOptions = new List<FilterOption>
+                {
+                    new() { Display = "All Genres", Value = null}
+                };
+
+                filterOptions.AddRange(genres
+                    .OrderBy(g => g.Name)
+                    .Select(g => new FilterOption
+                    {
+                        Display = g.Name,
+                        Value = g.Id
+                    }));
+
+                GenresComboBox.ItemsSource = filterOptions;
+                GenresComboBox.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load genres filter: {ex.Message}");
+            }
+        }
+
+        private async Task LoadTagsFilter()
+        {
+            try
+            {
+                var tags = await LibraryService.GetAllTagsAsync();
+
+                var filterOptions = new List<FilterOption>
+                {
+                    new() { Display = "All Tags", Value = null}
+                };
+
+                filterOptions.AddRange(tags
+                    .OrderBy(t => t.Name)
+                    .Select(t => new FilterOption
+                    {
+                        Display = t.Name,
+                        Value = t.Id
+                    }));
+
+                TagsComboBox.ItemsSource = filterOptions;
+                TagsComboBox.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load tags filter: {ex.Message}");
+            }
+        }
+
+        private async Task LoadCollectionsFilter()
+        {
+            try
+            {
+                var collections = await LibraryService.GetAllCollectionsAsync();
+
+                var filterOptions = new List<FilterOption>
+                {
+                    new() { Display = "All Collections", Value = null}
+                };
+
+                filterOptions.AddRange(collections
+                    .OrderBy(c => c.Name)
+                    .Select(c => new FilterOption
+                    {
+                        Display = c.Name,
+                        Value = c.Id
+                    }));
+
+                CollectionsComboBox.ItemsSource = filterOptions;
+                CollectionsComboBox.SelectedIndex = 0;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Failed to load collections filter: {ex.Message}");
             }
         }
 
         #endregion
+    }
+
+    public class FilterOption
+    {
+        public string Display { get; set; } = "";
+        public int? Value { get; set; }  // null represents "All"
     }
 }

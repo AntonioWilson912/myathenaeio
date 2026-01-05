@@ -12,7 +12,7 @@ namespace MyAthenaeio.Data.Repositories
 
         // Book-specific queries with include options
         Task<Book?> GetByISBNAsync(string isbn, BookIncludeOptions? options = null);
-        Task<List<Book>> SearchAsync(string query, BookIncludeOptions? options = null);
+        Task<List<Book>> SearchAsync(string? query = null, int? authorId = null, int? genreId = null, int? tagId = null, int? collectionId = null, BookIncludeOptions? options = null);
         Task<List<Book>> GetByAuthorAsync(int authorId, BookIncludeOptions? options = null);
         Task<List<Book>> GetByGenreAsync(int genreId, BookIncludeOptions? options = null);
         Task<List<Book>> GetByTagAsync(int tagId, BookIncludeOptions? options = null);
