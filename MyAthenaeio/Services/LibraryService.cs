@@ -1,1037 +1,985 @@
-﻿using Microsoft.EntityFrameworkCore;
-using MyAthenaeio.Data;
-using MyAthenaeio.Models;
-using MyAthenaeio.Utils;
+﻿using MyAthenaeio.Data;
+using MyAthenaeio.Data.Repositories;
+using MyAthenaeio.Models.DTOs;
+using MyAthenaeio.Models.Entities;
+using MyAthenaeio.Models.ViewModels;
 
 namespace MyAthenaeio.Services
 {
+    /// <summary>
+    /// Thin facade over repository layer. Provides a simplified API for data operations.
+    /// All validation and business logic is handled in the repository layer.
+    /// </summary>
     public static class LibraryService
     {
         #region Authors
 
-        public static async Task<Author> CreateAuthorAsync(string name, string? bio = null)
+        /// <summary>
+        /// Adds a new author to the library.
+        /// </summary>
+        public static async Task<Author> AddAuthorAsync(Author author)
         {
-            using var context = new AppDbContext();
+            using var repos = new RepositoryFactory();
+            return await repos.Authors.AddAsync(author);
+        }
 
-            Author author = new()
+        /// <summary>
+        /// Convenience method to add an author by name and bio.
+        /// </summary>
+        public static async Task<Author> AddAuthorAsync(string name, string? bio = null, string? openLibraryKey = null)
+        {
+            var author = new Author
             {
                 Name = name,
-                Bio = bio
+                Bio = bio,
+                OpenLibraryKey = openLibraryKey
             };
-
-            await context.Authors.AddAsync(author);
-            await context.SaveChangesAsync();
-
-            return author;
+            return await AddAuthorAsync(author);
         }
 
-        public static async Task<List<Author>> GetAuthorsAsync()
+        /// <summary>
+        /// Gets all authors.
+        /// </summary>
+        public static async Task<List<Author>> GetAllAuthorsAsync(AuthorIncludeOptions? options = null)
         {
-            using var context = new AppDbContext();
-
-            return await context.Authors
-                .Include(a => a.Books)
-                .OrderBy(a => a.Name)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Authors.GetAllAsync(options);
         }
 
-        public static async Task<Author?> GetAuthorAsync(int id)
+        /// <summary>
+        /// Gets an author by ID.
+        /// </summary>
+        public static async Task<Author?> GetAuthorByIdAsync(int id, AuthorIncludeOptions? options = null)
         {
-            using var context = new AppDbContext();
-
-            return await context.Authors
-                .Include(a => a.Books)
-                .FirstOrDefaultAsync(author => author.Id == id);
+            using var repos = new RepositoryFactory();
+            return await repos.Authors.GetByIdAsync(id, options);
         }
 
-        public static async Task<List<Author>> SearchAuthorsAsync(string query)
+        /// <summary>
+        /// Gets an author by name.
+        /// </summary>
+        public static async Task<Author?> GetAuthorByNameAsync(string name)
         {
-            using var context = new AppDbContext();
-
-            return await context.Authors
-                .Include(a => a.Books)
-                .Where(a => a.Name.ToLower().Contains(query.ToLower()))
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Authors.GetByNameAsync(name);
         }
 
-        public static async Task<Author?> UpdateAuthorAsync(Author author)
+        /// <summary>
+        /// 
+        /// </summary>
+        public static async Task<List<Author>> GetAuthorsByBookAsync(int _bookId,  AuthorIncludeOptions? options = null)
         {
-            using var context = new AppDbContext();
+            using var repos = new RepositoryFactory();
+            return await repos.Authors.GetByBookAsync(_bookId, options);
+        }
 
-            var existingAuthor = await context.Authors.FindAsync(author.Id) ?? throw new InvalidOperationException("Author does not exist.");
-            existingAuthor.Name = author.Name;
-            existingAuthor.Bio = author.Bio;
+        /// <summary>
+        /// Gets an author by OpenLibrary key.
+        /// </summary>
+        public static async Task<Author?> GetAuthorByOpenLibraryKeyAsync(string openLibraryKey)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Authors.GetByOpenLibraryKeyAsync(openLibraryKey);
+        }
 
-            await context.SaveChangesAsync();
+        /// <summary>
+        /// Searches for authors by name or bio.
+        /// </summary>
+        public static async Task<List<Author>> SearchAuthorsAsync(string query, AuthorIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Authors.SearchAsync(query, options);
+        }
 
-            return existingAuthor;
+        /// <summary>
+        /// Updates an author's information.
+        /// </summary>
+        public static async Task UpdateAuthorAsync(Author author)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Authors.UpdateAsync(author);
+        }
+
+        /// <summary>
+        /// Deletes an author.
+        /// </summary>
+        public static async Task DeleteAuthorAsync(int id)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Authors.DeleteAsync(id);
+        }
+
+        /// <summary>
+        /// Gets all books by an author.
+        /// </summary>
+        public static async Task<List<Book>> GetBooksByAuthorAsync(int authorId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Authors.GetBooksByAuthorAsync(authorId);
         }
 
         #endregion
 
         #region Books
 
-        public static async Task<Book> AddBookAsync(Book book, List<string> authorNames, List<int>? genreIds = null, List<int>? tagIds = null, List<int>? collectionIds = null)
+        /// <summary>
+        /// Adds a new book to the library.
+        /// </summary>
+        public static async Task<Book> AddBookAsync(Book book)
         {
-            using var context = new AppDbContext();
-
-            var existingBook = await context.Books
-                .Include(b => b.Authors)
-                .FirstOrDefaultAsync(b => b.ISBN == book.ISBN);
-
-            if (existingBook != null)
-                throw new InvalidOperationException($"Book already exists: {existingBook.Title} (ID: {existingBook.Id})");
-
-            if (book.DateAdded == default)
-                book.DateAdded = DateTime.UtcNow;
-
-            if (book.Copies == 0)
-                book.Copies = 1;
-
-            // Handle authors
-            foreach (var authorName in authorNames)
-            {
-                var author = await context.Authors.FirstOrDefaultAsync(a => a.Name == authorName);
-
-                if (author == null)
-                {
-                    author = new Author { Name = authorName };
-                    context.Authors.Add(author);
-                }
-
-                book.Authors.Add(author);
-            }
-
-            // Handle genres
-            if (genreIds != null && genreIds.Count != 0)
-            {
-                var genres = await context.Genres
-                    .Where(g => genreIds.Contains(g.Id))
-                    .ToListAsync();
-
-                foreach (var genre in genres)
-                    book.Genres.Add(genre);
-            }
-
-            // Handle tags
-            if (tagIds != null && tagIds.Count != 0)
-            {
-                var tags = await context.Tags
-                    .Where(t => tagIds.Contains(t.Id))
-                    .ToListAsync();
-
-                foreach (var tag in tags)
-                    book.Tags.Add(tag);
-            }
-
-            // Handle collections
-            if (collectionIds != null && collectionIds.Count != 0)
-            {
-                var collections = await context.Collections
-                    .Where(c => collectionIds.Contains(c.Id))
-                    .ToListAsync();
-
-                foreach (var collection in collections)
-                    book.Collections.Add(collection);
-            }
-
-            context.Books.Add(book);
-            await context.SaveChangesAsync();
-
-            return book;
+            return await AddBookAsync(book, []);
         }
 
-        public static async Task<List<Book>> GetAllBooksAsync()
+        /// <summary>
+        /// Adds a new book to the library with authors and optional categorization.
+        /// </summary>
+        public static async Task<Book> AddBookAsync(
+            Book book,
+            List<AuthorInfo> authorInfos,
+            List<int>? genreIds = null,
+            List<int>? tagIds = null,
+            List<int>? collectionIds = null)
         {
-            using var context = new AppDbContext();
-            return await context.Books
-                .Include(b => b.Authors)
-                .Include(b => b.Genres)
-                .Include(b => b.Tags)
-                .Include(b => b.Collections)
-                .OrderBy(b => b.Title)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Books.AddAsync(book, authorInfos, genreIds, tagIds, collectionIds);
         }
 
+        /// <summary>
+        /// Adds a genre to a book
+        /// </summary>
+        public static async Task AddGenreToBookAsync(int bookId, int genreId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.AddGenreAsync(bookId, genreId);
+        }
+
+        /// <summary>
+        /// Adds a tag to a book
+        /// </summary>
+        public static async Task AddTagToBookAsync(int bookId, int tagId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.AddTagAsync(bookId, tagId);
+        }
+
+        /// <summary>
+        /// Adds a collection to a book
+        /// </summary>
+        public static async Task AddCollectionToBookAsync(int bookId, int collectionId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.AddCollectionAsync(bookId, collectionId);
+        }
+
+
+        /// <summary>
+        /// Gets all books in the library.
+        /// </summary>
+        public static async Task<List<Book>> GetAllBooksAsync(BookIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Books.GetAllAsync(options);
+        }
+
+        /// <summary>
+        /// Gets a book by ID.
+        /// </summary>
+        public static async Task<Book?> GetBookByIdAsync(int id, BookIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Books.GetByIdAsync(id, options);
+        }
+
+        /// <summary>
+        /// Gets a book by ISBN (supports both ISBN-10 and ISBN-13).
+        /// </summary>
+        public static async Task<Book?> GetBookByISBNAsync(string isbn, BookIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Books.GetByISBNAsync(isbn, options);
+        }
+
+        /// <summary>
+        /// Searches for books by title, author, ISBN, or description.
+        /// </summary>
+        public static async Task<List<Book>> SearchBooksAsync(string? query = null,
+            int? authorId = null,
+            int? genreId = null,
+            int? tagId = null,
+            int? collectionId = null,
+            BookIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Books.SearchAsync(query, authorId, genreId, tagId, collectionId, options);
+        }
+
+        /// <summary>
+        /// Gets all books by an author.
+        /// </summary>
         public static async Task<List<Book>> GetBooksByAuthorAsync(Author author)
+            => await GetBooksByAuthorAsync(author.Id);
+
+        /// <summary>
+        /// Gets all books by an author ID.
+        /// </summary>
+        public static async Task<List<Book>> GetBooksByAuthorAsync(int authorId, BookIncludeOptions? options = null)
         {
-            return await GetBooksByAuthorAsync(author.Id);
+            using var repos = new RepositoryFactory();
+            return await repos.Books.GetByAuthorAsync(authorId, options);
         }
 
-        public static async Task<List<Book>> GetBooksByAuthorAsync(int authorId)
-        {
-            using var context = new AppDbContext();
-            return await context.Books
-                .Include(b => b.Authors)
-                .Include(b => b.Genres)
-                .Include(b => b.Tags)
-                .Include(b => b.Collections)
-                .Where(book => book.Authors.Any(a => a.Id == authorId))
-                .OrderBy(b => b.Title)
-                .ToListAsync();
-        }
-
+        /// <summary>
+        /// Gets all books in a genre.
+        /// </summary>
         public static async Task<List<Book>> GetBooksByGenreAsync(Genre genre)
+            => await GetBooksByGenreAsync(genre.Id);
+
+        /// <summary>
+        /// Gets all books in a genre by ID.
+        /// </summary>
+        public static async Task<List<Book>> GetBooksByGenreAsync(int genreId, BookIncludeOptions? options = null)
         {
-            return await GetBooksByGenreAsync(genre.Id);
+            using var repos = new RepositoryFactory();
+            return await repos.Books.GetByGenreAsync(genreId, options);
         }
 
-        public static async Task<List<Book>> GetBooksByGenreAsync(int genreId)
-        {
-            using var context = new AppDbContext();
-            return await context.Books
-                .Include(b => b.Authors)
-                .Include(b => b.Genres)
-                .Include(b => b.Tags)
-                .Include(b => b.Collections)
-                .Where(book => book.Genres.Any(g => g.Id == genreId))
-                .OrderBy(b => b.Title)
-                .ToListAsync();
-        }
-
+        /// <summary>
+        /// Gets all books with a tag.
+        /// </summary>
         public static async Task<List<Book>> GetBooksByTagAsync(Tag tag)
+            => await GetBooksByTagAsync(tag.Id);
+
+        /// <summary>
+        /// Gets all books with a tag by ID.
+        /// </summary>
+        public static async Task<List<Book>> GetBooksByTagAsync(int tagId, BookIncludeOptions? options = null)
         {
-            return await GetBooksByTagAsync(tag.Id);
+            using var repos = new RepositoryFactory();
+            return await repos.Books.GetByTagAsync(tagId, options);
         }
 
-        public static async Task<List<Book>> GetBooksByTagAsync(int tagId)
-        {
-            using var context = new AppDbContext();
-            return await context.Books
-                .Include(b => b.Authors)
-                .Include(b => b.Genres)
-                .Include(b => b.Tags)
-                .Include(b => b.Collections)
-                .Where(book => book.Tags.Any(t => t.Id == tagId))
-                .OrderBy(b => b.Title)
-                .ToListAsync();
-        }
+        /// <summary>
+        /// Gets all books in a collection.
+        /// </summary>
         public static async Task<List<Book>> GetBooksByCollectionAsync(Collection collection)
+            => await GetBooksByCollectionAsync(collection.Id);
+
+        /// <summary>
+        /// Gets all books in a collection by ID.
+        /// </summary>
+        public static async Task<List<Book>> GetBooksByCollectionAsync(int collectionId, BookIncludeOptions? options = null)
         {
-            return await GetBooksByCollectionAsync(collection.Id);
+            using var repos = new RepositoryFactory();
+            return await repos.Books.GetByCollectionAsync(collectionId, options);
         }
 
-        public static async Task<List<Book>> GetBooksByCollectionAsync(int collectionId)
+        /// <summary>
+        /// Updates book properties (not relationships).
+        /// </summary>
+        public static async Task UpdateBookAsync(Book book)
         {
-            using var context = new AppDbContext();
-            return await context.Books
-                .Include(b => b.Authors)
-                .Include(b => b.Genres)
-                .Include(b => b.Tags)
-                .Include(b => b.Collections)
-                .Where(book => book.Collections.Any(c => c.Id == collectionId))
-                .OrderBy(b => b.Title)
-                .ToListAsync();
-        }
-        public static async Task<Book?> GetBookByIdAsync(int id)
-        {
-            using var context = new AppDbContext();
-            return await context.Books
-                .Include(b => b.Authors)
-                .Include(b => b.Genres)
-                .Include(b => b.Tags)
-                .Include(b => b.Collections)
-                .FirstOrDefaultAsync(book => book.Id == id);
+            using var repos = new RepositoryFactory();
+            await repos.Books.UpdateAsync(book);
         }
 
-        public static async Task<Book?> GetBookByISBNAsync(string isbn)
-        {
-            using var context = new AppDbContext();
-
-            // Clean ISBN
-            isbn = isbn.Replace("-", "").Replace(" ", "");
-
-            return await context.Books
-                .Include(b => b.Authors)
-                .Include(b => b.Genres)
-                .Include(b => b.Tags)
-                .Include(b => b.Collections)
-                .FirstOrDefaultAsync(book => book.ISBN.Replace("-", "").Replace(" ", "") == isbn);
-        }
-
-        public static async Task<List<Book>> SearchBooksAsync(string query)
-        {
-            using var context = new AppDbContext();
-
-            query = query.ToLower();
-            return await context.Books
-                .Include(b => b.Authors)
-                .Include(b => b.Genres)
-                .Include(b => b.Tags)
-                .Include(b => b.Collections)
-                .Where(b => b.Title.ToLower().Contains(query) ||
-                            b.Subtitle!.ToLower().Contains(query) ||
-                            b.Description!.ToLower().Contains(query) ||
-                            b.ISBN.Contains(query) ||
-                            b.Authors.Any(a => a.Name.ToLower().Contains(query)))
-                .OrderBy(b => b.Title)
-                .ToListAsync();
-        }
-
-        public static async Task<Book> UpdateBookAsync(Book book)
-        {
-            using var context = new AppDbContext();
-
-            var existingBook = await context.Books
-                .Include(b => b.Authors)
-                .Include(b => b.Genres)
-                .Include(b => b.Tags)
-                .Include(b => b.Collections)
-                .FirstOrDefaultAsync(b => b.Id == book.Id);
-                
-            if (existingBook == null)
-                throw new InvalidOperationException("Book does not exist.");
-
-            existingBook.Title = book.Title;
-            existingBook.Subtitle = book.Subtitle;
-            existingBook.Description = book.Description;
-            existingBook.Publisher = book.Publisher;
-            existingBook.PublicationYear = book.PublicationYear;
-            existingBook.CoverImageUrl = book.CoverImageUrl;
-            existingBook.Copies = book.Copies;
-            existingBook.Notes = book.Notes;
-
-            await context.SaveChangesAsync();
-            return existingBook;
-        }
-
+        /// <summary>
+        /// Updates a book's authors.
+        /// </summary>
         public static async Task UpdateBookAuthorsAsync(int bookId, List<int> authorIds)
         {
-            using var context = new AppDbContext();
-
-            var book = await context.Books
-                .Include(b => b.Authors)
-                .FirstOrDefaultAsync(b => b.Id == bookId);
-
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
-
-            book.Authors.Clear();
-
-            var authors = await context.Authors
-                .Where(a => authorIds.Contains(a.Id))
-                .ToListAsync();
-
-            foreach (var author in authors)
-            {
-                book.Authors.Add(author);
-            }
-
-            await context.SaveChangesAsync();
+            using var repos = new RepositoryFactory();
+            await repos.Books.UpdateAuthorsAsync(bookId, authorIds);
         }
 
+        /// <summary>
+        /// Updates a book's genres.
+        /// </summary>
         public static async Task UpdateBookGenresAsync(int bookId, List<int> genreIds)
         {
-            using var context = new AppDbContext();
-
-            var book = await context.Books
-                .Include(b => b.Genres)
-                .FirstOrDefaultAsync(b => b.Id == bookId);
-
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
-
-            book.Genres.Clear();
-
-            var genres = await context.Genres
-                .Where(g => genreIds.Contains(g.Id))
-                .ToListAsync();
-
-            foreach (var genre in genres)
-            {
-                book.Genres.Add(genre);
-            }
-
-            await context.SaveChangesAsync();
+            using var repos = new RepositoryFactory();
+            await repos.Books.UpdateGenresAsync(bookId, genreIds);
         }
 
+        /// <summary>
+        /// Updates a book's tags.
+        /// </summary>
         public static async Task UpdateBookTagsAsync(int bookId, List<int> tagIds)
         {
-            using var context = new AppDbContext();
-
-            var book = await context.Books
-                .Include(b => b.Tags)
-                .FirstOrDefaultAsync(b => b.Id == bookId);
-
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
-
-            book.Tags.Clear();
-
-            var tags = await context.Tags
-                .Where(t => tagIds.Contains(t.Id))
-                .ToListAsync();
-
-            foreach (var tag in tags)
-            {
-                book.Tags.Add(tag);
-            }
-
-            await context.SaveChangesAsync();
+            using var repos = new RepositoryFactory();
+            await repos.Books.UpdateTagsAsync(bookId, tagIds);
         }
 
+        /// <summary>
+        /// Updates a book's collections.
+        /// </summary>
         public static async Task UpdateBookCollectionsAsync(int bookId, List<int> collectionIds)
         {
-            using var context = new AppDbContext();
-
-            var book = await context.Books
-                .Include(b => b.Collections)
-                .FirstOrDefaultAsync(b => b.Id == bookId);
-
-            if (book == null)
-                throw new InvalidOperationException("Book does not exist.");
-
-            book.Collections.Clear();
-
-            var collections = await context.Collections
-                .Where(c => collectionIds.Contains(c.Id))
-                .ToListAsync();
-
-            foreach (var collection in collections)
-            {
-                book.Collections.Add(collection);
-            }
-
-            await context.SaveChangesAsync();
+            using var repos = new RepositoryFactory();
+            await repos.Books.UpdateCollectionsAsync(bookId, collectionIds);
         }
 
+        /// <summary>
+        /// Removes a genre from a book
+        /// </summary>
+        public static async Task RemoveGenreFromBookAsync(int bookId, int genreId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.RemoveGenreAsync(bookId, genreId);
+        }
 
+        /// <summary>
+        /// Removes a tag from a book
+        /// </summary>
+        public static async Task RemoveTagFromBookAsync(int bookId, int tagId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.RemoveTagAsync(bookId, tagId);
+        }
+
+        /// <summary>
+        /// Removes a collection from a book
+        /// </summary>
+        public static async Task RemoveCollectionFromBookAsync(int bookId, int collectionId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.RemoveCollectionAsync(bookId, collectionId);
+        }
+
+        /// <summary>
+        /// Deletes a book from the library.
+        /// </summary>
+        public static async Task DeleteBookAsync(int id)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.DeleteAsync(id);
+        }
 
         #endregion
 
         #region Book Availability
+
+        /// <summary>
+        /// Gets detailed availability information for a book.
+        /// </summary>
         public static async Task<BookAvailability> GetBookAvailabilityAsync(int bookId)
         {
-            using var context = new AppDbContext();
-
-            var book = await context.Books.FindAsync(bookId);
-            if (book == null)
-                return new BookAvailability { BookExists = false };
-
-            var activeLoans = await context.Loans
-                .CountAsync(l => l.BookId == bookId && l.ReturnDate == null);
-
-            return new BookAvailability
-            {
-                BookExists = true,
-                TotalCopies = book.Copies,
-                OnLoan = activeLoans,
-                Available = book.Copies - activeLoans
-            };
+            using var repos = new RepositoryFactory();
+            return await repos.Books.GetAvailabilityAsync(bookId);
         }
 
+        /// <summary>
+        /// Gets the number of available copies of a book.
+        /// </summary>
         public static async Task<int> GetAvailableCopiesAsync(int bookId)
         {
-            using var context = new AppDbContext();
-
-            var book = await context.Books.FindAsync(bookId);
-            if (book == null)
-                return 0;
-
-            // Count active loans
-            var activeLoans = await context.Loans
-                .CountAsync(l => l.BookId == bookId && l.ReturnDate == null);
-
-            return book.Copies - activeLoans;
+            using var repos = new RepositoryFactory();
+            return await repos.Books.GetAvailableCopiesAsync(bookId);
         }
 
+        /// <summary>
+        /// Checks if a book has any available copies.
+        /// </summary>
         public static async Task<bool> IsBookAvailableAsync(int bookId)
         {
-            return await GetAvailableCopiesAsync(bookId) > 0;
+            using var repos = new RepositoryFactory();
+            return await repos.Books.IsAvailableAsync(bookId);
         }
+
+        #endregion
+
+        #region Book Copies
+
+        /// <summary>
+        /// Adds a new copy of a book.
+        /// </summary>
+        public static async Task<BookCopy> AddBookCopyAsync(int bookId, BookCopy copy)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.BookCopies.AddCopyAsync(bookId, copy);
+        }
+
+        /// <summary>
+        /// Gets all copies of a book.
+        /// </summary>
+        public static async Task<List<BookCopy>> GetBookCopiesAsync(int bookId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.BookCopies.GetByBookAsync(bookId);
+        }
+
+        /// <summary>
+        /// Gets all available copies of a book.
+        /// </summary>
+        public static async Task<List<BookCopy>> GetAvailableBookCopiesAsync(int bookId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.BookCopies.GetAvailableCopiesAsync(bookId);
+        }
+
+        /// <summary>
+        /// Gets a book copy by ID.
+        /// </summary>
+        public static async Task<BookCopy?> GetBookCopyByIdAsync(int id, BookCopyIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.BookCopies.GetByIdAsync(id, options);
+        }
+
+        /// <summary>
+        /// Updates a book copy's information.
+        /// </summary>
+        public static async Task UpdateBookCopyAsync(BookCopy bookCopy)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.BookCopies.UpdateAsync(bookCopy);
+        }
+
+        /// <summary>
+        /// Marks a book copy as unavailable (lost, damaged, etc.).
+        /// </summary>
+        public static async Task MarkBookCopyUnavailableAsync(int bookCopyId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.BookCopies.MarkAsUnavailableAsync(bookCopyId);
+        }
+
+        /// <summary>
+        /// Marks a book copy as available.
+        /// </summary>
+        public static async Task MarkBookCopyAvailableAsync(int bookCopyId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.BookCopies.MarkAsAvailableAsync(bookCopyId);
+        }
+
+        /// <summary>
+        /// Deletes a book copy.
+        /// </summary>
+        public static async Task DeleteBookCopyAsync(int id)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.BookCopies.DeleteAsync(id);
+        }
+
         #endregion
 
         #region Borrowers
 
-        public static async Task<Borrower> CreateBorrowerAsync(string name, string? email = null, string? phone = null)
+        /// <summary>
+        /// Adds a new borrower.
+        /// </summary>
+        public static async Task<Borrower> AddBorrowerAsync(Borrower borrower)
         {
-            using var context = new AppDbContext();
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.AddAsync(borrower);
+        }
 
-            // Check for duplicate email
-            if (!string.IsNullOrEmpty(email))
-            {
-                var emailExists = await context.Borrowers
-                    .AnyAsync(b => b.Email != null && b.Email.ToLower() == email.ToLower());
-
-                if (emailExists)
-                    throw new InvalidOperationException($"A borrower with email '{email}' already exists.");
-            }
-
-            // Check for duplicate phone
-            if (!string.IsNullOrEmpty(phone))
-            {
-                var phoneExists = await context.Borrowers
-                    .AnyAsync(b => b.Phone != null && b.Phone == phone);
-
-                if (phoneExists)
-                    throw new InvalidOperationException($"A borrower with phone '{phone}' already exists.");
-            }
-
-            Borrower borrower = new()
+        /// <summary>
+        /// Convenience method to add a borrower by details.
+        /// </summary>
+        public static async Task<Borrower> AddBorrowerAsync(string name, string? email = null, string? phone = null, string? notes = null)
+        {
+            var borrower = new Borrower
             {
                 Name = name,
                 Email = email,
                 Phone = phone,
-                DateAdded = DateTime.Now
+                Notes = notes,
+                DateAdded = DateTime.UtcNow
             };
-
-            context.Add(borrower);
-            await context.SaveChangesAsync();
-
-            return borrower;
+            return await AddBorrowerAsync(borrower);
         }
 
-        public static async Task<List<Borrower>> GetBorrowersAsync()
+        /// <summary>
+        /// Gets all borrowers.
+        /// </summary>
+        public static async Task<List<Borrower>> GetAllBorrowersAsync(BorrowerIncludeOptions? options = null)
         {
-            using var context = new AppDbContext();
-
-            return await context.Borrowers
-                .OrderBy(b => b.Name)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetAllAsync(options);
         }
 
-        public static async Task<List<Borrower>> SearchBorrowersAsync(string query)
+        /// <summary>
+        /// Gets all active borrowers.
+        /// </summary>
+        public static async Task<List<Borrower>> GetActiveBorrowersAsync(BorrowerIncludeOptions? options = null)
         {
-            using var context = new AppDbContext();
-
-            query = query.ToLower();
-            return await context.Borrowers
-                .Where(b => b.Name.ToLower().Contains(query) ||
-                            b.Email!.ToLower().Contains(query) ||
-                            b.Phone!.Contains(query))
-                .OrderBy(b => b.Name)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetAllActiveAsync(options);
         }
 
-        public static async Task<Borrower?> GetBorrowerAsync(int borrowerId)
+        /// <summary>
+        /// Gets a borrower by ID.
+        /// </summary>
+        public static async Task<Borrower?> GetBorrowerByIdAsync(int id, BorrowerIncludeOptions? options = null)
         {
-            using var context = new AppDbContext();
-
-            return await context.Borrowers
-                .FirstOrDefaultAsync(b => b.Id == borrowerId);
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetByIdAsync(id, options);
         }
 
-        public static async Task<Borrower> UpdateBorrowerAsync(Borrower borrower)
+        /// <summary>
+        /// Gets a borrower by email.
+        /// </summary>
+        public static async Task<Borrower?> GetBorrowerByEmailAsync(string email)
         {
-            using var context = new AppDbContext();
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetByEmailAsync(email);
+        }
 
-            var existingBorrower = await context.Borrowers.FirstOrDefaultAsync(b => b.Id == borrower.Id);
+        /// <summary>
+        /// Gets a borrower by phone number.
+        /// </summary>
+        public static async Task<Borrower?> GetBorrowerByPhoneAsync(string phone)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetByPhoneAsync(phone);
+        }
 
-            if (existingBorrower == null)
-                throw new InvalidOperationException("Borrower does not exist.");
+        /// <summary>
+        /// Searches for borrowers by name, email, or phone.
+        /// </summary>
+        public static async Task<List<Borrower>> SearchBorrowersAsync(string query, BorrowerIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.SearchAsync(query, options);
+        }
 
-            if (!string.IsNullOrEmpty(borrower.Email))
-            {
-                var existingEmail = await context.Borrowers.AnyAsync(b => b.Id != existingBorrower.Id && b.Email!.ToLower() == borrower.Email.ToLower());
+        /// <summary>
+        /// Updates a borrower's information.
+        /// </summary>
+        public static async Task UpdateBorrowerAsync(Borrower borrower)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Borrowers.UpdateAsync(borrower);
+        }
 
-                if (existingEmail)
-                    throw new InvalidOperationException($"Borrower already exists with email '{borrower.Email}'");
+        /// <summary>
+        /// Deletes a borrower.
+        /// </summary>
+        public static async Task DeleteBorrowerAsync(int id)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Borrowers.DeleteAsync(id);
+        }
 
-                existingBorrower.Email = borrower.Email;
-            }
+        /// <summary>
+        /// Checks if a borrower has any active loans.
+        /// </summary>
+        public static async Task<bool> HasActiveLoansAsync(int borrowerId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.HasActiveLoansAsync(borrowerId);
+        }
 
-            if (!string.IsNullOrEmpty(borrower.Phone))
-            {
-                var existingPhone = await context.Borrowers.AnyAsync(b => b.Id != existingBorrower.Id && b.Phone!.ToLower() == borrower.Phone.ToLower());
+        /// <summary>
+        /// Gets the number of active loans for a borrower.
+        /// </summary>
+        public static async Task<int> GetActiveLoanCountAsync(int borrowerId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetActiveLoanCountAsync(borrowerId);
+        }
 
-                if (existingPhone)
-                    throw new InvalidOperationException($"Borrower already exists with phone '{borrower.Phone}'");
+        /// <summary>
+        /// Gets all loans for a borrower.
+        /// </summary>
+        public static async Task<List<Loan>> GetLoansByBorrowerAsync(int borrowerId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetLoansByBorrowerAsync(borrowerId);
+        }
 
-                existingBorrower.Phone = borrower.Phone;
-            }
-
-            existingBorrower.Name = borrower.Name;
-
-            await context.SaveChangesAsync();
-
-            return existingBorrower;
+        /// <summary>
+        /// Gets all active loans for a borrower.
+        /// </summary>
+        public static async Task<List<Loan>> GetActiveLoansByBorrowerAsync(int borrowerId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetActiveLoansByBorrowerAsync(borrowerId);
         }
 
         #endregion
 
         #region Collections
-        public static async Task<Collection> CreateCollectionAsync(string name, string notes = "")
+
+        /// <summary>
+        /// Adds a new collection.
+        /// </summary>
+        public static async Task<Collection> AddCollectionAsync(Collection collection)
         {
-            using var context = new AppDbContext();
+            using var repos = new RepositoryFactory();
+            return await repos.Collections.AddAsync(collection);
+        }
 
-            var existingCollection = await context.Collections.FirstOrDefaultAsync(c => c.Name.ToLower() == name.ToLower());
-
-            if (existingCollection != null)
-                throw new InvalidOperationException($"Collection '{name}' already exists.");
-
-            Collection collection = new()
+        /// <summary>
+        /// Convenience method to add a collection by name and description.
+        /// </summary>
+        public static async Task<Collection> AddCollectionAsync(string name, string? description = null, string? notes = null)
+        {
+            var collection = new Collection
             {
                 Name = name,
+                Description = description,
                 Notes = notes
             };
-
-            await context.Collections.AddAsync(collection);
-            await context.SaveChangesAsync();
-
-            return collection;
+            return await AddCollectionAsync(collection);
         }
 
-        public static async Task<List<Collection>> GetCollectionsAsync()
+        /// <summary>
+        /// Gets all collections.
+        /// </summary>
+        public static async Task<List<Collection>> GetAllCollectionsAsync()
         {
-            using var context = new AppDbContext();
-
-            return await context.Collections
-                .Include(c => c.Books)
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Collections.GetAllAsync();
         }
 
+        /// <summary>
+        /// Gets a collection by ID.
+        /// </summary>
+        public static async Task<Collection?> GetCollectionByIdAsync(int id)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Collections.GetByIdAsync(id);
+        }
+
+        /// <summary>
+        /// Gets a collection by name.
+        /// </summary>
+        public static async Task<Collection?> GetCollectionByNameAsync(string name)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Collections.GetByNameAsync(name);
+        }
+
+        /// <summary>
+        /// Searches for collections by name or description.
+        /// </summary>
         public static async Task<List<Collection>> SearchCollectionsAsync(string query)
         {
-            using var context = new AppDbContext();
-
-            query = query.ToLower();
-
-            return await context.Collections
-                .Include(c => c.Books)
-                .Where(c => c.Name.ToLower() == query)
-                .OrderBy(c => c.Name)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Collections.SearchAsync(query);
         }
 
+        /// <summary>
+        /// Updates a collection.
+        /// </summary>
         public static async Task UpdateCollectionAsync(Collection collection)
         {
-            using var context = new AppDbContext();
-
-            var existingCollection = await context.Collections.FindAsync(collection.Id) ?? throw new InvalidOperationException("Collection does not exist.");
-
-            var duplicateCollection = await context.Collections
-                .FirstOrDefaultAsync(c => c.Id != collection.Id && c.Name.ToLower() == collection.Name.ToLower());
-
-            if (duplicateCollection != null)
-                throw new InvalidOperationException($"Collection '{collection.Name} already exists.");
-
-            existingCollection.Name = collection.Name;
-            await context.SaveChangesAsync();
+            using var repos = new RepositoryFactory();
+            await repos.Collections.UpdateAsync(collection);
         }
 
-        public static async Task DeleteCollectionAsync(int collectionId)
+        /// <summary>
+        /// Deletes a collection.
+        /// </summary>
+        public static async Task DeleteCollectionAsync(int id)
         {
-            using var context = new AppDbContext();
+            using var repos = new RepositoryFactory();
+            await repos.Collections.DeleteAsync(id);
+        }
 
-            var existingCollection = await context.Collections.FindAsync(collectionId) ?? throw new InvalidOperationException("Collection does not exist.");
-
-            context.Collections.Remove(existingCollection);
-            await context.SaveChangesAsync();
+        /// <summary>
+        /// Gets the number of books in a collection.
+        /// </summary>
+        public static async Task<int> GetBookCountInCollectionAsync(int collectionId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Collections.GetBookCountAsync(collectionId);
         }
 
         #endregion
 
         #region Genres
 
-        public static async Task<Genre> CreateGenreAsync(string name)
+        /// <summary>
+        /// Adds a new genre.
+        /// </summary>
+        public static async Task<Genre> AddGenreAsync(Genre genre)
         {
-            using var context = new AppDbContext();
+            using var repos = new RepositoryFactory();
+            return await repos.Genres.AddAsync(genre);
+        }
 
-            var existingGenre = await context.Genres.FirstOrDefaultAsync(g => g.Name.ToLower() == name.ToLower());
-
-            if (existingGenre != null)
-                throw new InvalidOperationException($"Genre '{name}' already exists.");
-
-            Genre genre = new()
+        /// <summary>
+        /// Convenience method to add a genre by name and description.
+        /// </summary>
+        public static async Task<Genre> AddGenreAsync(string name, string? description = null)
+        {
+            var genre = new Genre
             {
                 Name = name
             };
-
-            await context.Genres.AddAsync(genre);
-            await context.SaveChangesAsync();
-
-            return genre;
+            return await AddGenreAsync(genre);
         }
 
-        public static async Task<List<Genre>> GetGenresAsync()
+        /// <summary>
+        /// Gets all genres.
+        /// </summary>
+        public static async Task<List<Genre>> GetAllGenresAsync()
         {
-            using var context = new AppDbContext();
-
-            return await context.Genres
-                .Include(g => g.Books)
-                .OrderBy(g => g.Name)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Genres.GetAllAsync();
         }
 
+        /// <summary>
+        /// Gets a genre by ID.
+        /// </summary>
+        public static async Task<Genre?> GetGenreByIdAsync(int id)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Genres.GetByIdAsync(id);
+        }
+
+        /// <summary>
+        /// Gets a genre by name.
+        /// </summary>
+        public static async Task<Genre?> GetGenreByNameAsync(string name)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Genres.GetByNameAsync(name);
+        }
+
+        /// <summary>
+        /// Searches for genres by name.
+        /// </summary>
         public static async Task<List<Genre>> SearchGenresAsync(string query)
         {
-            using var context = new AppDbContext();
-
-            query = query.ToLower();
-
-            return await context.Genres
-                .Include(c => c.Books)
-                .Where(g => g.Name.ToLower() == query)
-                .OrderBy(g => g.Name)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Genres.SearchAsync(query);
         }
 
+        /// <summary>
+        /// Updates a genre.
+        /// </summary>
         public static async Task UpdateGenreAsync(Genre genre)
         {
-            using var context = new AppDbContext();
-
-            var existingGenre = await context.Genres.FindAsync(genre.Id) ?? throw new InvalidOperationException("Genre does not exist.");
-
-            var duplicateGenre = await context.Genres
-                .FirstOrDefaultAsync(t => t.Id != genre.Id && t.Name.ToLower() == genre.Name.ToLower());
-
-            if (duplicateGenre != null)
-                throw new InvalidOperationException($"Genre '{genre.Name}' already exists.");
-
-            existingGenre.Name = genre.Name;
-            await context.SaveChangesAsync();
+            using var repos = new RepositoryFactory();
+            await repos.Genres.UpdateAsync(genre);
         }
 
-        public static async Task DeleteGenreAsync(int genreId)
+        /// <summary>
+        /// Deletes a genre.
+        /// </summary>
+        public static async Task DeleteGenreAsync(int id)
         {
-            using var context = new AppDbContext();
+            using var repos = new RepositoryFactory();
+            await repos.Genres.DeleteAsync(id);
+        }
 
-            var existingGenre = await context.Genres.FindAsync(genreId) ?? throw new InvalidOperationException("Genre does not exist.");
-
-            context.Genres.Remove(existingGenre);
-            await context.SaveChangesAsync();
+        /// <summary>
+        /// Gets the number of books in a genre.
+        /// </summary>
+        public static async Task<int> GetBookCountInGenreAsync(int genreId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Genres.GetBookCountAsync(genreId);
         }
 
         #endregion
 
         #region Loans
-        public static async Task<List<Loan>> GetAllLoansAsync()
+
+        /// <summary>
+        /// Checks out a book to a borrower.
+        /// </summary>
+        public static async Task<Loan> CheckoutBookAsync(int bookCopyId, int borrowerId, int maxRenewals = 2, int loanPeriodDays = 14)
         {
-            using var context = new AppDbContext();
-            return await context.Loans
-                .Include(l => l.Book)
-                    .ThenInclude(b => b.Authors)
-                .Include(l => l.Borrower)
-                .Include(l => l.Renewals)
-                .OrderByDescending(l => l.CheckoutDate)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.CheckoutAsync(bookCopyId, borrowerId, maxRenewals, loanPeriodDays);
         }
 
-        public static async Task<List<Loan>> GetLoansByBookAsync(int bookId)
-        {
-            using var context = new AppDbContext();
-
-            return await context.Loans
-                .Include(l => l.Book)
-                    .ThenInclude(b => b.Authors)
-                .Include(l => l.Borrower)
-                .Include(l => l.Renewals)
-                .Where(l => l.BookId == bookId)
-                .OrderByDescending(l => l.CheckoutDate)
-                .ToListAsync();
-        }
-
-        public static async Task<List<Loan>> GetLoansByBorrowerAsync(int borrowerId)
-        {
-            using var context = new AppDbContext();
-
-            return await context.Loans
-                .Include(l => l.Book)
-                    .ThenInclude(b => b.Authors)
-                .Include(l => l.Borrower)
-                .Include(l => l.Renewals)
-                .Where(l => l.BorrowerId == borrowerId)
-                .OrderByDescending(l => l.CheckoutDate)
-                .ToListAsync();
-        }
-
-        public static async Task<List<Loan>> GetActiveLoansAsync()
-        {
-            using var context = new AppDbContext();
-            return await context.Loans
-                .Include(l => l.Book)
-                    .ThenInclude(b => b.Authors)
-                .Include(l => l.Borrower)
-                .Include(l => l.Renewals)
-                .Where(l => l.ReturnDate == null)
-                .OrderByDescending(l => l.CheckoutDate)
-                .ToListAsync();
-        }
-
-        public static async Task<List<Loan>> GetActiveLoansByBorrowerAsync(int borrowerId)
-        {
-            using var context = new AppDbContext();
-
-            return await context.Loans
-                .Include(l => l.Book)
-                    .ThenInclude(b => b.Authors)
-                .Include(l => l.Borrower)
-                .Include(l => l.Renewals)
-                .Where(l => l.ReturnDate == null && l.BorrowerId == borrowerId)
-                .OrderByDescending(l => l.CheckoutDate)
-                .ToListAsync();
-        }
-
-        public static async Task<List<Loan>> GetLoansDueSoonAsync(int daysAhead = 7)
-        {
-            using var context = new AppDbContext();
-            var now = DateTime.Now;
-            var futureDate = now.AddDays(daysAhead);
-
-            return await context.Loans
-                .Include(l => l.Book)
-                    .ThenInclude(b => b.Authors)
-                .Include(l => l.Borrower)
-                .Include(l => l.Renewals)
-                .Where(l => l.ReturnDate == null)
-                .ToListAsync()
-                .ContinueWith(task => task.Result
-                    .Where(l => l.GetEffectiveDueDate() >= now &&
-                                l.GetEffectiveDueDate() <= futureDate)
-                    .OrderBy(l => l.GetEffectiveDueDate())
-                    .ToList());
-        }
-
-        public static async Task<List<Loan>> GetOverdueLoansAsync()
-        {
-            using var context = new AppDbContext();
-            var now = DateTime.Now;
-
-            return await context.Loans
-                .Include(l => l.Book)
-                    .ThenInclude(b => b.Authors)
-                .Include(l => l.Borrower)
-                .Include(l => l.Renewals)
-                .Where(l => l.ReturnDate == null)
-                .ToListAsync()
-                .ContinueWith(task => task.Result
-                    .Where(l => l.GetEffectiveDueDate() < now)
-                    .OrderBy(l => l.GetEffectiveDueDate())
-                    .ToList());
-        }
-
-        public static async Task<DateTime> GetCurrentDueDateAsync(int loanId)
-        {
-            using var context = new AppDbContext();
-
-            var loan = await context.Loans
-                .Include(l => l.Renewals)
-                .FirstOrDefaultAsync(l => l.Id == loanId) ?? throw new InvalidOperationException("Loan does not exist.");
-
-            // Use the most recent renewal if there are any
-            if (loan.Renewals.Count > 0)
-            {
-                return loan.Renewals
-                    .OrderByDescending(r => r.RenewalDate)
-                    .First()
-                    .NewDueDate;
-            }
-
-            return loan.DueDate;
-        }
-
-        public static async Task<Loan> CheckoutBookAsync(int bookId, int borrowerId, int loanPeriodDays = 14)
-        {
-            using var context = new AppDbContext();
-
-            // Check if book is available
-            var book = await context.Books.FindAsync(bookId) ?? throw new InvalidOperationException("Book does not exist.");
-
-            // Check if borrower exists
-            var borrower = await context.Borrowers.FindAsync(borrowerId) ?? throw new InvalidOperationException("Borrower does not exist.");
-
-            // Check if borrower is already borrowing this book
-            var borrowerHasBook = await context.Loans
-                .AnyAsync(l => l.BookId == bookId &&
-                                l.BorrowerId == borrowerId &&
-                                l.ReturnDate == null);
-
-            if (borrowerHasBook)
-                throw new InvalidOperationException("Borrower already has an active loan for this book.");
-
-            // Check availability
-            var activeLoans = await context.Loans
-                .CountAsync(l => l.BookId == bookId && l.ReturnDate == null);
-
-            if (activeLoans >= book.Copies)
-                throw new InvalidOperationException($"No copies available. All {book.Copies} copies are currently on loan.");
-
-            // Create loan
-            var loan = new Loan
-            {
-                BookId = bookId,
-                BorrowerId = borrowerId,
-                CheckoutDate = DateTime.Now,
-                DueDate = DateTime.Now.AddDays(loanPeriodDays),
-                Renewals = []
-            };
-
-            context.Loans.Add(loan);
-            await context.SaveChangesAsync();
-
-            return loan;
-        }
-
-        public static async Task<Renewal> RenewLoanAsync(int loanId, int loanPeriodDays = 14, int maxRenewals = 3)
-        {
-            using var context = new AppDbContext();
-
-            // Check if loan exists
-            var loan = await context.Loans
-                .Include(l => l.Renewals)
-                .FirstOrDefaultAsync(l => l.Id == loanId) ?? throw new InvalidOperationException("Loan does not exist.");
-
-            // Check if loan has already been completed
-            if (loan.ReturnDate != null)
-                throw new InvalidOperationException("Book has already been returned.");
-
-            // Check if borrower is past max renewals
-            if (loan.Renewals.Count >= maxRenewals)
-                throw new InvalidOperationException($"Book has already been renewed the max number of times: {maxRenewals}");
-
-            // Create Renewal
-            var renewal = new Renewal
-            {
-                LoanId = loanId,
-                RenewalDate = DateTime.Now,
-                NewDueDate = DateTime.Now.AddDays(loanPeriodDays)
-            };
-
-            context.Renewals.Add(renewal);
-            await context.SaveChangesAsync();
-
-            return renewal;
-        }
-
+        /// <summary>
+        /// Returns a loaned book.
+        /// </summary>
         public static async Task<Loan> ReturnBookAsync(int loanId)
         {
-            using var context = new AppDbContext();
-
-            var loan = await context.Loans
-                .Include(l => l.Book)
-                .FirstOrDefaultAsync(l => l.Id == loanId);
-
-            if (loan == null)
-                throw new InvalidOperationException("Loan does not exist.");
-
-            if (loan.ReturnDate != null)
-                throw new InvalidOperationException("Book has already been returned.");
-
-            loan.ReturnDate = DateTime.Now;
-
-            await context.SaveChangesAsync();
-
-            return loan;
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.ReturnAsync(loanId);
         }
 
-        public static async Task<Loan> UpdateLoanAsync(Loan loan)
+        /// <summary>
+        /// Renews a loan.
+        /// </summary>
+        public static async Task<Renewal> RenewLoanAsync(int loanId)
         {
-            using var context = new AppDbContext();
-
-            var existingLoan = await context.Loans
-                .Include(l => l.Book)
-                .Include(l => l.Renewals)
-                .FirstOrDefaultAsync(l => l.Id == loan.Id);
-
-            if (existingLoan == null)
-                throw new InvalidOperationException("Loan does not exist.");
-
-            existingLoan.CheckoutDate = loan.CheckoutDate;
-            existingLoan.DueDate = loan.DueDate;
-            existingLoan.ReturnDate = loan.ReturnDate;
-            existingLoan.Notes = loan.Notes;
-
-            await context.SaveChangesAsync();
-
-            return existingLoan;
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.RenewAsync(loanId);
         }
 
-        #endregion
-
-        #region Renewals
-
-        public static async Task<Renewal> UpdateRenewalAsync(Renewal renewal)
+        /// <summary>
+        /// Gets all loans.
+        /// </summary>
+        public static async Task<List<Loan>> GetAllLoansAsync(LoanIncludeOptions? options = null)
         {
-            using var context = new AppDbContext();
-
-            var existingRenewal = await context.Renewals
-                .Include(r => r.Loan)
-                .FirstOrDefaultAsync(r => r.Id == renewal.Id);
-
-            if (existingRenewal == null)
-                throw new InvalidOperationException("Renewal does not exist.");
-
-            existingRenewal.NewDueDate = renewal.NewDueDate;
-            existingRenewal.Notes = renewal.Notes;
-
-            await context.SaveChangesAsync();
-
-            return existingRenewal;
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.GetAllAsync(options);
         }
 
+        /// <summary>
+        /// Gets all active (unreturned) loans.
+        /// </summary>
+        public static async Task<List<Loan>> GetActiveLoansAsync(LoanIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.GetActiveLoansAsync(options);
+        }
+
+        /// <summary>
+        /// Gets all overdue loans.
+        /// </summary>
+        public static async Task<List<Loan>> GetOverdueLoansAsync(LoanIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.GetOverdueLoansAsync(options);
+        }
+
+        /// <summary>
+        /// Gets loans due within the specified number of days.
+        /// </summary>
+        public static async Task<List<Loan>> GetDueSoonAsync(int daysAhead = 7, LoanIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.GetDueSoonAsync(daysAhead, options);
+        }
+
+        /// <summary>
+        /// Gets all loans for a specific book.
+        /// </summary>
+        public static async Task<List<Loan>> GetLoansByBookAsync(int bookId, LoanIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.GetByBookAsync(bookId, options);
+        }
+
+        /// <summary>
+        /// Gets a loan by ID.
+        /// </summary>
+        public static async Task<Loan?> GetLoanByIdAsync(int id, LoanIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.GetByIdAsync(id, options);
+        }
+
+        /// <summary>
+        /// Gets the effective due date for a loan (accounting for renewals).
+        /// </summary>
+        public static async Task<DateTime> GetEffectiveDueDateAsync(int loanId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.GetEffectiveDueDateAsync(loanId);
+        }
+
+        /// <summary>
+        /// Checks if a loan is overdue.
+        /// </summary>
+        public static async Task<bool> IsLoanOverdueAsync(int loanId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.IsOverdueAsync(loanId);
+        }
+
+        /// <summary>
+        /// Gets the number of days a loan is overdue.
+        /// </summary>
+        public static async Task<int> GetDaysOverdueAsync(int loanId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.GetDaysOverdueAsync(loanId);
+        }
+
+        /// <summary>
+        /// Updates a loan entity.
+        /// </summary>
+        public static async Task UpdateLoanAsync(Loan loan)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Loans.UpdateAsync(loan);
+        }
 
         #endregion
 
         #region Tags
 
-        public static async Task<Tag> CreateTagAsync(string name, string notes = "")
+        /// <summary>
+        /// Adds a new tag.
+        /// </summary>
+        public static async Task<Tag> AddTagAsync(Tag tag)
         {
-            using var context = new AppDbContext();
-
-            var existingTag = await context.Tags.FirstOrDefaultAsync(t => t.Name.ToLower() == name.ToLower());
-
-            if (existingTag != null)
-                throw new InvalidOperationException($"Tag '{name}' already exists.");
-
-            Tag tag = new()
-            {
-                Name = name
-            };
-
-            await context.Tags.AddAsync(tag);
-            await context.SaveChangesAsync();
-
-            return tag;
+            using var repos = new RepositoryFactory();
+            return await repos.Tags.AddAsync(tag);
         }
 
-        public static async Task<List<Tag>> GetTagsAsync()
+        /// <summary>
+        /// Convenience method to add a tag by name.
+        /// </summary>
+        public static async Task<Tag> AddTagAsync(string name)
         {
-            using var context = new AppDbContext();
-
-            return await context.Tags
-                .Include(t => t.Books)
-                .OrderBy(t => t.Name)
-                .ToListAsync();
+            var tag = new Tag { Name = name };
+            return await AddTagAsync(tag);
         }
 
+        /// <summary>
+        /// Gets all tags.
+        /// </summary>
+        public static async Task<List<Tag>> GetAllTagsAsync()
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Tags.GetAllAsync();
+        }
+
+        /// <summary>
+        /// Gets a tag by ID.
+        /// </summary>
+        public static async Task<Tag?> GetTagByIdAsync(int id)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Tags.GetByIdAsync(id);
+        }
+
+        /// <summary>
+        /// Gets a tag by name.
+        /// </summary>
+        public static async Task<Tag?> GetTagByNameAsync(string name)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Tags.GetByNameAsync(name);
+        }
+
+        /// <summary>
+        /// Searches for tags by name.
+        /// </summary>
         public static async Task<List<Tag>> SearchTagsAsync(string query)
         {
-            using var context = new AppDbContext();
-
-            query = query.ToLower();
-
-            return await context.Tags
-                .Include(t => t.Books)
-                .Where(t => t.Name.ToLower() == query)
-                .OrderBy(t => t.Name)
-                .ToListAsync();
+            using var repos = new RepositoryFactory();
+            return await repos.Tags.SearchAsync(query);
         }
 
+        /// <summary>
+        /// Updates a tag.
+        /// </summary>
         public static async Task UpdateTagAsync(Tag tag)
         {
-            using var context = new AppDbContext();
-
-            var existingTag = await context.Tags.FindAsync(tag.Id) ?? throw new InvalidOperationException("Tag does not exist.");
-
-            var duplicateTag = await context.Tags
-                .FirstOrDefaultAsync(t => t.Id != tag.Id && t.Name.ToLower() == tag.Name.ToLower());
-
-            if (duplicateTag != null)
-                throw new InvalidOperationException($"Tag '{tag.Name}' already exists.");
-
-            existingTag.Name = tag.Name;
-            await context.SaveChangesAsync();
+            using var repos = new RepositoryFactory();
+            await repos.Tags.UpdateAsync(tag);
         }
 
-        public static async Task DeleteTagAsync(int tagId)
+        /// <summary>
+        /// Deletes a tag.
+        /// </summary>
+        public static async Task DeleteTagAsync(int id)
         {
-            using var context = new AppDbContext();
+            using var repos = new RepositoryFactory();
+            await repos.Tags.DeleteAsync(id);
+        }
 
-            var existingTag = await context.Tags.FindAsync(tagId) ?? throw new InvalidOperationException("Tag does not exist.");
-
-            context.Tags.Remove(existingTag);
-            await context.SaveChangesAsync();
+        /// <summary>
+        /// Gets the number of books with a tag.
+        /// </summary>
+        public static async Task<int> GetBookCountWithTagAsync(int tagId)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Tags.GetBookCountAsync(tagId);
         }
 
         #endregion

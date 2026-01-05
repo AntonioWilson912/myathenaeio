@@ -82,7 +82,7 @@ namespace MyAthenaeio.Migrations
                     b.ToTable("BookTags");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Author", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Author", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -91,31 +91,42 @@ namespace MyAthenaeio.Migrations
                     b.Property<string>("Bio")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("BirthDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("OpenLibraryKey")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PhotoUrl")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Name");
 
+                    b.HasIndex("OpenLibraryKey")
+                        .IsUnique()
+                        .HasFilter("OpenLibraryKey IS NOT NULL");
+
                     b.ToTable("Authors");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Book", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Book", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("Copies")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("CoverImageUrl")
                         .HasColumnType("TEXT");
 
-                    b.Property<DateTime?>("DateAdded")
+                    b.Property<DateTime>("DateAdded")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
@@ -137,7 +148,6 @@ namespace MyAthenaeio.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Subtitle")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
@@ -156,7 +166,46 @@ namespace MyAthenaeio.Migrations
                     b.ToTable("Books");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Borrower", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.BookCopy", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("AcquisitionDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("BookId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Condition")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT")
+                        .HasDefaultValue("New");
+
+                    b.Property<string>("CopyNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BookId");
+
+                    b.HasIndex("BookId", "CopyNumber")
+                        .IsUnique();
+
+                    b.ToTable("BookCopies");
+                });
+
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Borrower", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -169,9 +218,15 @@ namespace MyAthenaeio.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("TEXT");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Notes")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Phone")
@@ -185,11 +240,15 @@ namespace MyAthenaeio.Migrations
                     b.ToTable("Borrowers");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Collection", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Collection", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -206,7 +265,7 @@ namespace MyAthenaeio.Migrations
                     b.ToTable("Collections");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Genre", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Genre", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -214,7 +273,7 @@ namespace MyAthenaeio.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(100)
+                        .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -246,10 +305,13 @@ namespace MyAthenaeio.Migrations
                         });
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Loan", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Loan", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("BookCopyId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("BookId")
@@ -264,6 +326,12 @@ namespace MyAthenaeio.Migrations
                     b.Property<DateTime>("DueDate")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("LoanPeriodDays")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MaxRenewalsAllowed")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Notes")
                         .HasColumnType("TEXT");
 
@@ -271,6 +339,8 @@ namespace MyAthenaeio.Migrations
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("BookCopyId");
 
                     b.HasIndex("BookId");
 
@@ -281,7 +351,7 @@ namespace MyAthenaeio.Migrations
                     b.ToTable("Loans");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Renewal", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Renewal", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -296,6 +366,9 @@ namespace MyAthenaeio.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime>("OldDueDate")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("RenewalDate")
                         .HasColumnType("TEXT");
 
@@ -306,7 +379,7 @@ namespace MyAthenaeio.Migrations
                     b.ToTable("Renewals");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Tag", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Tag", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -326,13 +399,13 @@ namespace MyAthenaeio.Migrations
 
             modelBuilder.Entity("BookAuthors", b =>
                 {
-                    b.HasOne("MyAthenaeio.Models.Author", null)
+                    b.HasOne("MyAthenaeio.Models.Entities.Author", null)
                         .WithMany()
                         .HasForeignKey("AuthorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MyAthenaeio.Models.Book", null)
+                    b.HasOne("MyAthenaeio.Models.Entities.Book", null)
                         .WithMany()
                         .HasForeignKey("BookId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -341,13 +414,13 @@ namespace MyAthenaeio.Migrations
 
             modelBuilder.Entity("BookCollections", b =>
                 {
-                    b.HasOne("MyAthenaeio.Models.Book", null)
+                    b.HasOne("MyAthenaeio.Models.Entities.Book", null)
                         .WithMany()
                         .HasForeignKey("BookId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MyAthenaeio.Models.Collection", null)
+                    b.HasOne("MyAthenaeio.Models.Entities.Collection", null)
                         .WithMany()
                         .HasForeignKey("CollectionId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -356,13 +429,13 @@ namespace MyAthenaeio.Migrations
 
             modelBuilder.Entity("BookGenres", b =>
                 {
-                    b.HasOne("MyAthenaeio.Models.Book", null)
+                    b.HasOne("MyAthenaeio.Models.Entities.Book", null)
                         .WithMany()
                         .HasForeignKey("BookId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MyAthenaeio.Models.Genre", null)
+                    b.HasOne("MyAthenaeio.Models.Entities.Genre", null)
                         .WithMany()
                         .HasForeignKey("GenreId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -371,28 +444,45 @@ namespace MyAthenaeio.Migrations
 
             modelBuilder.Entity("BookTags", b =>
                 {
-                    b.HasOne("MyAthenaeio.Models.Book", null)
+                    b.HasOne("MyAthenaeio.Models.Entities.Book", null)
                         .WithMany()
                         .HasForeignKey("BookId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("MyAthenaeio.Models.Tag", null)
+                    b.HasOne("MyAthenaeio.Models.Entities.Tag", null)
                         .WithMany()
                         .HasForeignKey("TagId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Loan", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.BookCopy", b =>
                 {
-                    b.HasOne("MyAthenaeio.Models.Book", "Book")
+                    b.HasOne("MyAthenaeio.Models.Entities.Book", "Book")
+                        .WithMany("Copies")
+                        .HasForeignKey("BookId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Book");
+                });
+
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Loan", b =>
+                {
+                    b.HasOne("MyAthenaeio.Models.Entities.BookCopy", "BookCopy")
+                        .WithMany("Loans")
+                        .HasForeignKey("BookCopyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("MyAthenaeio.Models.Entities.Book", "Book")
                         .WithMany("Loans")
                         .HasForeignKey("BookId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("MyAthenaeio.Models.Borrower", "Borrower")
+                    b.HasOne("MyAthenaeio.Models.Entities.Borrower", "Borrower")
                         .WithMany("Loans")
                         .HasForeignKey("BorrowerId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -400,12 +490,14 @@ namespace MyAthenaeio.Migrations
 
                     b.Navigation("Book");
 
+                    b.Navigation("BookCopy");
+
                     b.Navigation("Borrower");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Renewal", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Renewal", b =>
                 {
-                    b.HasOne("MyAthenaeio.Models.Loan", "Loan")
+                    b.HasOne("MyAthenaeio.Models.Entities.Loan", "Loan")
                         .WithMany("Renewals")
                         .HasForeignKey("LoanId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -414,17 +506,24 @@ namespace MyAthenaeio.Migrations
                     b.Navigation("Loan");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Book", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Book", b =>
+                {
+                    b.Navigation("Copies");
+
+                    b.Navigation("Loans");
+                });
+
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.BookCopy", b =>
                 {
                     b.Navigation("Loans");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Borrower", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Borrower", b =>
                 {
                     b.Navigation("Loans");
                 });
 
-            modelBuilder.Entity("MyAthenaeio.Models.Loan", b =>
+            modelBuilder.Entity("MyAthenaeio.Models.Entities.Loan", b =>
                 {
                     b.Navigation("Renewals");
                 });

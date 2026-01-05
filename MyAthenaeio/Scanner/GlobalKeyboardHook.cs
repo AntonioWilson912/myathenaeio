@@ -13,7 +13,7 @@ namespace MyAthenaeio.Scanner
         private LowLevelKeyboardProc _proc;
         private IntPtr _hookId = IntPtr.Zero;
 
-        public event EventHandler<Key> KeyPressed;
+        public event EventHandler<Key>? KeyPressed;
 
         public GlobalKeyboardHook()
         {
@@ -51,7 +51,7 @@ namespace MyAthenaeio.Scanner
         private IntPtr SetHook(LowLevelKeyboardProc proc)
         {
             using (Process curProcess = Process.GetCurrentProcess())
-            using (ProcessModule curModule = curProcess.MainModule)
+            using (ProcessModule curModule = curProcess.MainModule!)
             {
                 return SetWindowsHookEx(WH_KEYBOARD_LL, proc, IntPtr.Zero, 0);
             }

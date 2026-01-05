@@ -1,0 +1,97 @@
+<Window
+    x:Class="MyAthenaeio.Views.SettingsDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MyAthenaeio.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Settings"
+    Width="700"
+    Height="750"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/Styles.xaml" />
+    </Window.Resources>
+    <Grid Background="{StaticResource DarkAcademiaBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource DarkAcademiaBorderStyle}">
+            <TextBlock Style="{StaticResource HeaderTextBlockStyle}" Text="Application Settings" />
+        </Border>
+
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Barcode Scanner Settings">
+                    <StackPanel>
+                        <CheckBox
+                            x:Name="BackgroundScanningCheckBox"
+                            Content="Enable Background Scanning"
+                            ToolTip="Allow barcode scanning even when the application is not in focus" />
+
+                        <Label Content="Maximum Keystroke Delay (ms):" />
+                        <TextBox
+                            x:Name="MaxDelayTextBox"
+                            Width="100"
+                            HorizontalAlignment="Left" />
+
+                        <TextBlock
+                            Margin="5,0,0,0"
+                            FontSize="11"
+                            Foreground="{StaticResource DarkAcademiaTextMuted}"
+                            Text="Barcode scanners typically type faster than 50ms between characters"
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="API Settings">
+                    <StackPanel>
+                        <Label Content="API Timeout (seconds):" />
+                        <TextBox
+                            x:Name="TimeoutTextBox"
+                            Width="100"
+                            HorizontalAlignment="Left" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="Loan Settings">
+                    <StackPanel>
+                        <Label Content="Default Loan Period (days):" />
+                        <TextBox
+                            x:Name="LoanDaysTextBox"
+                            Width="100"
+                            HorizontalAlignment="Left"
+                            ToolTip="Number of days for a standard loan period" />
+
+                        <Label Content="Maximum Renewals:" />
+                        <TextBox
+                            x:Name="MaxRenewalsTextBox"
+                            Width="100"
+                            HorizontalAlignment="Left"
+                            ToolTip="Maximum number of times a loan can be renewed" />
+
+                        <TextBlock
+                            Margin="5,10,0,0"
+                            FontSize="11"
+                            Foreground="{StaticResource DarkAcademiaTextMuted}"
+                            Text="These settings apply to new loans only. Existing loans retain their original terms."
+                            TextWrapping="Wrap" />
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel
+            Grid.Row="2"
+            Margin="0,15,0,0"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button Click="Save_Click" Content="Save" />
+            <Button Click="Cancel_Click" Content="Cancel" />
+        </StackPanel>
+    </Grid>
+</Window>

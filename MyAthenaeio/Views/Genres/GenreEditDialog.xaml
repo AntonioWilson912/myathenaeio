@@ -1,0 +1,113 @@
+<Window
+    x:Class="MyAthenaeio.Views.Genres.GenreEditDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MyAthenaeio.Views.Genres"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Edit Genre"
+    Width="700"
+    Height="700"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/Styles.xaml" />
+    </Window.Resources>
+    <Grid Background="{StaticResource DarkAcademiaBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource DarkAcademiaBorderStyle}">
+            <TextBlock Style="{StaticResource HeaderTextBlockStyle}" Text="Edit Genre Information" />
+        </Border>
+
+        <ScrollViewer
+            Grid.Row="1"
+            Margin="15"
+            VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <GroupBox Header="Basic Information">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Label
+                            Grid.Row="0"
+                            Grid.Column="0"
+                            Content="Name:" />
+                        <TextBox
+                            x:Name="NameTextBox"
+                            Grid.Row="0"
+                            Grid.Column="1" />
+                    </Grid>
+                </GroupBox>
+
+                <GroupBox Margin="0,10,0,0" Header="Books in Genre">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <DataGrid
+                            x:Name="BooksDataGrid"
+                            Grid.Row="0"
+                            Height="300"
+                            AutoGenerateColumns="False"
+                            IsReadOnly="True">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding Title}"
+                                    Header="Title" />
+                                <DataGridTextColumn
+                                    Width="200"
+                                    Binding="{Binding AuthorsDisplay}"
+                                    Header="Authors" />
+                                <DataGridTextColumn
+                                    Width="100"
+                                    Binding="{Binding PublicationYear}"
+                                    Header="Year" />
+                                <DataGridTemplateColumn Width="80" Header="Action">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button
+                                                Padding="5,2"
+                                                Click="RemoveBook_Click"
+                                                Content="Remove"
+                                                Tag="{Binding}" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <TextBlock
+                            x:Name="NoBooksText"
+                            Grid.Row="0"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            FontStyle="Italic"
+                            Foreground="{StaticResource DarkAcademiaTextMuted}"
+                            Text="No books in this genre"
+                            Visibility="Collapsed" />
+                    </Grid>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+
+        <StackPanel
+            Grid.Row="2"
+            Margin="15"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button Click="Save_Click" Content="Save" />
+            <Button Click="Cancel_Click" Content="Cancel" />
+        </StackPanel>
+    </Grid>
+</Window>

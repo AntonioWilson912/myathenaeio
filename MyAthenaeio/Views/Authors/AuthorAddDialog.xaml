@@ -1,0 +1,181 @@
+<Window
+    x:Class="MyAthenaeio.Views.Authors.AuthorAddDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MyAthenaeio.Views.Authors"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Add Author to Book"
+    Width="600"
+    Height="715"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/Styles.xaml" />
+    </Window.Resources>
+
+    <Grid Background="{StaticResource DarkAcademiaBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource DarkAcademiaBorderStyle}">
+            <TextBlock Style="{StaticResource HeaderTextBlockStyle}" Text="Add Author to Book" />
+        </Border>
+
+        <TabControl Grid.Row="1" Margin="15">
+            <TabItem Header="Existing Author">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Margin="0,0,0,10">
+                        <Label Content="Search for existing author:" />
+                        <TextBox
+                            x:Name="SearchTextBox"
+                            Margin="5,0"
+                            TextChanged="SearchTextBox_TextChanged" />
+                    </StackPanel>
+
+                    <ListBox
+                        x:Name="ExistingAuthorsListBox"
+                        Grid.Row="1"
+                        MouseDoubleClick="ExistingAuthorsListBox_MouseDoubleClick"
+                        SelectionChanged="ExistingAuthorsListBox_SelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <StackPanel>
+                                    <TextBlock FontWeight="Bold" Text="{Binding Name}" />
+                                    <TextBlock FontSize="11" IsEnabled="False">
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="OL Key: {0}">
+                                                <Binding Path="OpenLibraryKey" TargetNullValue="None" />
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+            </TabItem>
+
+            <TabItem Header="New Author">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Margin="10">
+                        <GroupBox Header="Author Information">
+                            <Grid>
+                                <Grid.Resources>
+                                    <Style BasedOn="{StaticResource {x:Type Label}}" TargetType="Label">
+                                        <Setter Property="Margin" Value="0,0,10,10" />
+                                    </Style>
+                                    <Style BasedOn="{StaticResource {x:Type TextBox}}" TargetType="TextBox">
+                                        <Setter Property="Margin" Value="0,0,0,10" />
+                                    </Style>
+                                    <Style BasedOn="{StaticResource {x:Type DatePicker}}" TargetType="DatePicker">
+                                        <Setter Property="Margin" Value="0,0,0,10" />
+                                    </Style>
+                                </Grid.Resources>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="120" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                    <RowDefinition Height="Auto" />
+                                </Grid.RowDefinitions>
+
+                                <Label
+                                    Grid.Row="0"
+                                    Grid.Column="0"
+                                    Content="Name:" />
+                                <TextBox
+                                    x:Name="NameTextBox"
+                                    Grid.Row="0"
+                                    Grid.Column="1" />
+
+                                <Label
+                                    Grid.Row="1"
+                                    Grid.Column="0"
+                                    Content="OL Key:" />
+                                <Grid Grid.Row="1" Grid.Column="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="OLKeyTextBox" Grid.Column="0" />
+                                    <Button
+                                        x:Name="FetchOLDataButton"
+                                        Grid.Column="1"
+                                        Margin="10,0,0,10"
+                                        Click="FetchOLData_Click"
+                                        Content="Fetch Data" />
+                                </Grid>
+
+                                <Label
+                                    Grid.Row="2"
+                                    Grid.Column="0"
+                                    Content="Birth Date:" />
+                                <DatePicker
+                                    x:Name="BirthDatePicker"
+                                    Grid.Row="2"
+                                    Grid.Column="1" />
+
+                                <Label
+                                    Grid.Row="3"
+                                    Grid.Column="0"
+                                    Content="Photo URL:" />
+                                <Grid Grid.Row="3" Grid.Column="1">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox
+                                        x:Name="PhotoUrlTextBox"
+                                        Grid.Column="0"
+                                        TextChanged="PhotoUrlTextBox_TextChanged" />
+                                    <Button
+                                        x:Name="ViewPhotoButton"
+                                        Grid.Column="1"
+                                        Margin="10,0,0,10"
+                                        Click="ViewPhoto_Click"
+                                        Content="View Photo"
+                                        IsEnabled="False"
+                                        ToolTip="View author photo" />
+                                </Grid>
+                            </Grid>
+                        </GroupBox>
+
+                        <GroupBox Header="Biography">
+                            <TextBox
+                                x:Name="BioTextBox"
+                                Height="120"
+                                AcceptsReturn="True"
+                                TextWrapping="Wrap"
+                                VerticalScrollBarVisibility="Auto" />
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <StackPanel
+            Grid.Row="2"
+            Margin="15"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button
+                x:Name="AddButton"
+                Click="Add_Click"
+                Content="Add"
+                IsEnabled="False" />
+            <Button Click="Cancel_Click" Content="Cancel" />
+        </StackPanel>
+    </Grid>
+</Window>

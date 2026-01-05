@@ -1,0 +1,283 @@
+﻿<Window
+    x:Class="MyAthenaeio.Views.HelpWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MyAthenaeio.Views"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Help - myAthenaeio"
+    Width="800"
+    Height="600"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/Styles.xaml" />
+    </Window.Resources>
+
+    <Grid Background="{StaticResource DarkAcademiaBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Style="{StaticResource DarkAcademiaBorderStyle}">
+            <TextBlock Style="{StaticResource HeaderTextBlockStyle}" Text="Help Documentation" />
+        </Border>
+
+        <TabControl
+            x:Name="HelpTabControl"
+            Grid.Row="1"
+            Margin="15">
+            <TabItem Header="Getting Started">
+                <ScrollViewer Padding="10" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="Welcome to Home Library Manager" />
+                        <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">
+                            <Run>This application helps you manage your personal book collection with features including:</Run>
+                            <LineBreak />
+                            <Run>• Barcode scanning for quick book entry</Run>
+                            <LineBreak />
+                            <Run>• Automatic book information retrieval from Open Library and Google Books</Run>
+                            <LineBreak />
+                            <Run>• Borrower management and loan tracking</Run>
+                            <LineBreak />
+                            <Run>• Email notifications for overdue books</Run>
+                            <LineBreak />
+                            <Run>• Multiple copies support for each book</Run>
+                            <LineBreak />
+                            <Run>• Author information and biography</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Quick Start:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>1. Scan or enter an ISBN to add a book</Run>
+                            <LineBreak />
+                            <Run>2. Create borrower profiles for people who borrow books</Run>
+                            <LineBreak />
+                            <Run>3. Use the Loan Management to check out books</Run>
+                            <LineBreak />
+                            <Run>4. Track overdue books and send reminders</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="API Services:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run FontWeight="Bold">Open Library (Default):</Run>
+                            <LineBreak />
+                            <Run>• Free, no API key required</Run>
+                            <LineBreak />
+                            <Run>• Extensive book and author database</Run>
+                            <LineBreak />
+                            <Run>• Includes author biographies and photos</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem x:Name="ScanningHelpTab" Header="Barcode Scanning">
+                <ScrollViewer Padding="10" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="Using the Barcode Scanner" />
+
+                        <TextBlock Margin="0,10,0,0" TextWrapping="Wrap">
+                            <Run>The application supports USB/Bluetooth barcode scanners that act as keyboard input devices.</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Setup:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>1. Connect your USB/Bluetooth barcode scanner</Run>
+                            <LineBreak />
+                            <Run>2. No special drivers needed for most scanners</Run>
+                            <LineBreak />
+                            <Run>3. Enable "Background Scanning" in Settings for scanning while the app is minimized</Run>
+                            <LineBreak />
+                            <Run>4. Configure the scanner to add Enter/Return after each scan</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Scanning Books:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>• Go to the "Scan Books" tab</Run>
+                            <LineBreak />
+                            <Run>• Scan the ISBN barcode on your book</Run>
+                            <LineBreak />
+                            <Run>• The app will automatically fetch book information</Run>
+                            <LineBreak />
+                            <Run>• If the book isn't found, you can add it manually</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Manual Entry:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>• Type or paste the ISBN in the scan field</Run>
+                            <LineBreak />
+                            <Run>• Press Enter or click "Process ISBN"</Run>
+                            <LineBreak />
+                            <Run>• Both ISBN-10 and ISBN-13 formats are supported</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem x:Name="LoanHelpTab" Header="Loan Management">
+                <ScrollViewer Padding="10" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="Managing Book Loans" />
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Creating Borrowers:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>1. Click "Manage Borrowers" in the loan window</Run>
+                            <LineBreak />
+                            <Run>2. Add new borrowers with their contact information</Run>
+                            <LineBreak />
+                            <Run>3. Email addresses enable automatic overdue notifications</Run>
+                            <LineBreak />
+                            <Run>4. Mark borrowers as inactive when they should no longer borrow</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Checking Out Books:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>1. Open a book's details and click "Manage Loans"</Run>
+                            <LineBreak />
+                            <Run>2. Select an available copy</Run>
+                            <LineBreak />
+                            <Run>3. Choose or create a borrower</Run>
+                            <LineBreak />
+                            <Run>4. Set the due date</Run>
+                            <LineBreak />
+                            <Run>5. Add any notes about the loan</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Returns and Renewals:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>• View active loans in the "Active Loans" tab</Run>
+                            <LineBreak />
+                            <Run>• Click "Return" when a book is returned</Run>
+                            <LineBreak />
+                            <Run>• Click "Renew" to extend the loan period</Run>
+                            <LineBreak />
+                            <Run>• Each loan can be renewed up to its specified maximum:</Run>
+                            <LineBreak />
+                            <Run Text="    • Specify the maximum number of renewals for new loans in Settings, and any new loans will be configured with that maximum." />
+                            <LineBreak />
+                            <Run>• Renewal count is locked when the loan is created</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Overdue Books:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>• Overdue books are highlighted in red</Run>
+                            <LineBreak />
+                            <Run>• View all overdue books in Borrower Management</Run>
+                            <LineBreak />
+                            <Run>• Filter borrowers by overdue status</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <TabItem x:Name="TroubleshootingTab" Header="Troubleshooting">
+                <ScrollViewer Padding="10" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <TextBlock
+                            FontSize="16"
+                            FontWeight="Bold"
+                            Text="Common Issues and Solutions" />
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Scanner Not Working:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>• Ensure the scanner is configured to add Enter after scanning</Run>
+                            <LineBreak />
+                            <Run>• Check that background scanning is enabled if needed</Run>
+                            <LineBreak />
+                            <Run>• Try scanning into Notepad to verify scanner output</Run>
+                            <LineBreak />
+                            <Run>• Restart the application after connecting the scanner</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Book Not Found:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>• Not all ISBNs are in the Open Library database</Run>
+                            <LineBreak />
+                            <Run>• Try searching with both ISBN-10 and ISBN-13</Run>
+                            <LineBreak />
+                            <Run>• Use "Add Book Manually" for books not in the database</Run>
+                            <LineBreak />
+                            <Run>• Check your internet connection</Run>
+                        </TextBlock>
+
+                        <TextBlock
+                            Margin="0,20,0,5"
+                            FontSize="14"
+                            FontWeight="Bold"
+                            Text="Database Issues:" />
+                        <TextBlock Margin="10,0,0,0" TextWrapping="Wrap">
+                            <Run>• Database is stored in: %AppData%\myAthenaeio\library.db</Run>
+                            <LineBreak />
+                            <Run>• Back up this file regularly</Run>
+                            <LineBreak />
+                            <Run>• If corrupted, restore from a backup</Run>
+                        </TextBlock>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+
+        <Button
+            Grid.Row="2"
+            Margin="15"
+            HorizontalAlignment="Right"
+            Click="Close_Click"
+            Content="Close" />
+    </Grid>
+</Window>

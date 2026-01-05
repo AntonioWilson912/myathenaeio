@@ -1,0 +1,172 @@
+<Window
+    x:Class="MyAthenaeio.Views.Genres.GenreManagementWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:MyAthenaeio.Views.Genres"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="Genre Management"
+    Width="900"
+    Height="600"
+    WindowStartupLocation="CenterOwner"
+    mc:Ignorable="d">
+    <Window.Resources>
+        <ResourceDictionary Source="/Resources/Styles.xaml" />
+    </Window.Resources>
+
+    <Grid Background="{StaticResource DarkAcademiaBackground}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!--  Header  -->
+        <Border Grid.Row="0" Style="{StaticResource DarkAcademiaBorderStyle}">
+            <TextBlock Style="{StaticResource HeaderTextBlockStyle}" Text="Genre Management" />
+        </Border>
+
+        <!--  Search and Filters  -->
+        <Grid Grid.Row="1" Margin="15">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="200" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <!--  Search Box  -->
+            <Grid Grid.Column="0" Margin="0,0,10,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <TextBox
+                    x:Name="SearchTextBox"
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    FontSize="14"
+                    KeyDown="SearchTextBox_KeyDown" />
+                <TextBlock
+                    Grid.Column="0"
+                    Margin="10,0"
+                    VerticalAlignment="Center"
+                    Foreground="{StaticResource DarkAcademiaTextMuted}"
+                    IsHitTestVisible="False"
+                    Text="Search genres...">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ElementName=SearchTextBox, Path=Text}" Value="">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+
+                <Button
+                    x:Name="SearchButton"
+                    Grid.Column="1"
+                    Margin="10,0,5,0"
+                    Click="SearchButton_Click"
+                    Content="Search" />
+            </Grid>
+
+            <!--  Filter ComboBox  -->
+            <ComboBox
+                x:Name="BookFilterComboBox"
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                SelectedIndex="0"
+                SelectionChanged="BookFilterComboBox_SelectionChanged">
+                <ComboBoxItem Content="All Genres" />
+                <ComboBoxItem Content="With Books" />
+                <ComboBoxItem Content="Without Books" />
+            </ComboBox>
+
+            <!--  Refresh Button  -->
+            <Button
+                x:Name="RefreshButton"
+                Grid.Column="2"
+                Margin="10,0,0,0"
+                Click="RefreshButton_Click"
+                Content="Refresh" />
+        </Grid>
+
+        <!--  Genres DataGrid  -->
+        <DataGrid
+            x:Name="GenresDataGrid"
+            Grid.Row="2"
+            Margin="15"
+            AutoGenerateColumns="False"
+            CanUserAddRows="False"
+            IsReadOnly="True"
+            MouseDoubleClick="GenresDataGrid_MouseDoubleClick"
+            SelectionMode="Single">
+            <DataGrid.Columns>
+                <DataGridTextColumn
+                    Width="*"
+                    MinWidth="200"
+                    Binding="{Binding Name}"
+                    Header="Genre Name">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTextColumn
+                    Width="120"
+                    Binding="{Binding BookCount}"
+                    Header="Book Count">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="HorizontalAlignment" Value="Center" />
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+
+                <DataGridTemplateColumn Width="200" Header="Actions">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <StackPanel HorizontalAlignment="Center" Orientation="Horizontal">
+                                <Button
+                                    Margin="2"
+                                    Padding="5,2"
+                                    Click="ViewDetailsButton_Click"
+                                    Content="View Details"
+                                    Tag="{Binding}" />
+                                <Button
+                                    Margin="2"
+                                    Padding="5,2"
+                                    Click="EditButton_Click"
+                                    Content="Edit"
+                                    Tag="{Binding}" />
+                                <Button
+                                    Margin="2"
+                                    Padding="5,2"
+                                    Click="DeleteButton_Click"
+                                    Content="Delete"
+                                    Tag="{Binding}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!--  Action Buttons  -->
+        <StackPanel
+            Grid.Row="3"
+            Margin="15"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            <Button Click="AddGenre_Click" Content="Add Genre" />
+            <Button Click="Close_Click" Content="Close" />
+        </StackPanel>
+    </Grid>
+</Window>
