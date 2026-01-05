@@ -3,8 +3,13 @@ name: Build myAthenaeio
 on:
   push:
     branches: [ "main" ]
+    tags:
+      - 'v*'
   pull_request:
     branches: [ "main" ]
+    
+permissions:
+  contents: write
 
 jobs:
   build:
@@ -31,11 +36,40 @@ jobs:
     - name: Test
       run: dotnet test --configuration Release --no-build --verbosity normal
     
-    - name: Publish
-      run: dotnet publish --configuration Release --runtime win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true
+    - name: Publish for Installer
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+      run: dotnet publish MyAthenaeio/MyAthenaeio.csproj --configuration Release --runtime win-x64 --self-contained false --output ./publish
     
-    - name: Upload artifact
+    - name: Install Advanced Installer
+      run: |
+        choco install advanced-installer -y
+        refreshenv
+
+    - name: Build Installer
+      run: |
+        $aiPath = Get-ChildItem "C:\Program Files (x86)\Caphyon" -Filter "AdvancedInstaller.com" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+        if (-not $aiPath) {
+          Write-Error "Advanced Installer not found"
+          exit 1
+        }
+        Write-Host "Found Advanced Installer at: $aiPath"
+        & $aiPath /build myAthenaeio.aip
+      shell: powershell
+    
+    - name: Upload Installer Artifact
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
       uses: actions/upload-artifact@v4
       with:
-        name: myAthenaeio-win-x64
-        path: ./bin/Release/net9.0-windows/win-x64/publish/
+        name: myAthenaeio-installer
+        path: '*-SetupFiles/*.msi'
+    
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: '*-SetupFiles/*.msi'
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
