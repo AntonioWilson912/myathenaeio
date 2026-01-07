@@ -24,6 +24,11 @@ namespace MyAthenaeio.Data.Repositories
             return await _dbSet.ToListAsync();
         }
 
+        public virtual async Task<List<TEntity>> GetAllAsNoTrackingAsync()
+        {
+            return await _dbSet.AsNoTracking().ToListAsync();
+        }
+
         public virtual async Task<List<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate)
         {
             return await _dbSet.Where(predicate).ToListAsync();

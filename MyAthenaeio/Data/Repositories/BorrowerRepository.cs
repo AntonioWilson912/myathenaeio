@@ -36,6 +36,22 @@ namespace MyAthenaeio.Data.Repositories
             return await query.OrderBy(b => b.Name).ToListAsync();
         }
 
+        public override async Task<List<Borrower>> GetAllAsNoTrackingAsync()
+        {
+            return await GetAllAsNoTrackingAsync(BorrowerIncludeOptions.Default);
+        }
+
+        public async Task<List<Borrower>> GetAllAsNoTrackingAsync(BorrowerIncludeOptions? options = null)
+        {
+            options ??= BorrowerIncludeOptions.Default;
+
+            if (options.ForceReload)
+                DetachAll();
+
+            var query = BuildQuery(_dbSet.AsQueryable().AsNoTracking(), options);
+            return await query.OrderBy(b => b.Name).ToListAsync();
+        }
+
         public async Task<List<Borrower>> GetAllActiveAsync(BorrowerIncludeOptions? options = null)
         {
             options ??= BorrowerIncludeOptions.Default;

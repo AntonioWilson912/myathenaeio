@@ -153,6 +153,12 @@
         </Style.Triggers>
     </Style>
 
+    <!--  ProgressBar Style  -->
+    <Style TargetType="ProgressBar">
+        <Setter Property="Background" Value="{StaticResource DarkAcademiaBorder}" />
+        <Setter Property="Foreground" Value="{StaticResource DarkAcademiaGreen}" />
+    </Style>
+
     <!--  TextBox Style  -->
     <Style TargetType="TextBox">
         <Setter Property="Background" Value="{StaticResource DarkAcademiaPanel}" />

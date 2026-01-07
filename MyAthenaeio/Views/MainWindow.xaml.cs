@@ -1,20 +1,21 @@
-﻿using System.Collections.ObjectModel;
-using System.IO;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Text.Json;
-using System.Windows.Controls;
-using MyAthenaeio.Scanner;
-using MyAthenaeio.Services;
-using MyAthenaeio.Utils;
+﻿using Microsoft.Win32;
+using MyAthenaeio.Data;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
+using MyAthenaeio.Scanner;
+using MyAthenaeio.Services;
+using MyAthenaeio.Utils;
 using MyAthenaeio.Views.Books;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
-using MyAthenaeio.Data;
+using System.IO;
+using System.Text.Json;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace MyAthenaeio.Views
 {
@@ -98,9 +99,54 @@ namespace MyAthenaeio.Views
 
         #region Menu Event Handlers
 
-        private void ExportLibrary_Click(object sender, RoutedEventArgs e)
+        private async void ExportLibrary_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Library export funcitonality coming soon!", "That Is Unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+            try
+            {
+                var saveDialog = new SaveFileDialog
+                {
+                    Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                    DefaultExt = "json",
+                    FileName = $"library_export_{DateTime.Now:yyyyMMdd_HHmmss}.json"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    var progressDialog = new ProgressDialog("Exporting Library", "Preparing export...") { Owner = this };
+                    progressDialog.Show();
+
+                    try
+                    {
+                        var export = await IMEXService.ExportToFileAsync(saveDialog.FileName);
+
+                        progressDialog.Close();
+
+                        MessageBox.Show($"Library exported successfully!\n\n" +
+                                       $"Books: {export.Statistics.TotalBooks}\n" +
+                                       $"Authors: {export.Statistics.TotalAuthors}\n" +
+                                       $"Genres: {export.Statistics.TotalGenres}\n" +
+                                       $"Tags: {export.Statistics.TotalTags}\n" +
+                                       $"Collections: {export.Statistics.TotalCollections}\n" +
+                                       $"Borrowers: {export.Statistics.TotalBorrowers}\n" +
+                                       $"Book Copies: {export.Statistics.TotalCopies}\n" +
+                                       $"Active Loans: {export.Statistics.ActiveLoans}\n" +
+                                       $"Completed Loans: {export.Statistics.CompletedLoans}\n" +
+                                       $"Renewal Records: {export.Statistics.TotalRenewals}\n\n" +
+                                       $"File: {saveDialog.FileName}",
+                            "Export Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    finally
+                    {
+                        if (progressDialog.IsVisible)
+                            progressDialog.Close();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error exporting library: {ex.Message}",
+                    "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void ImportLibrary_Click(object sender, RoutedEventArgs e)

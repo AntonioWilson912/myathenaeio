@@ -8,6 +8,7 @@ namespace MyAthenaeio.Data.Repositories
         // Override base methods with include options
         Task<Author?> GetByIdAsync(int id, AuthorIncludeOptions? options = null);
         Task<List<Author>> GetAllAsync(AuthorIncludeOptions? options = null);
+        Task<List<Author>> GetAllAsNoTrackingAsync(AuthorIncludeOptions? options = null);
 
         // Author-specific queries
         Task<List<Author>> SearchAsync(string query, AuthorIncludeOptions? options = null);

@@ -38,6 +38,22 @@ namespace MyAthenaeio.Data.Repositories
             return await query.OrderBy(b => b.Title).ToListAsync();
         }
 
+        public override async Task<List<Book>> GetAllAsNoTrackingAsync()
+        {
+            return await GetAllAsNoTrackingAsync(BookIncludeOptions.Default);
+        }
+
+        public async Task<List<Book>> GetAllAsNoTrackingAsync(BookIncludeOptions? options = null)
+        {
+            options ??= BookIncludeOptions.Default;
+
+            if (options.ForceReload)
+                DetachAll();
+
+            var query = BuildQuery(_dbSet.AsQueryable().AsNoTracking(), options);
+            return await query.OrderBy(b => b.Title).ToListAsync();
+        }
+
         public async Task<Book?> GetByISBNAsync(string isbn, BookIncludeOptions? options = null)
         {
             options ??= BookIncludeOptions.Default;
