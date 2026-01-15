@@ -215,6 +215,21 @@ namespace MyAthenaeio.Data.Repositories
             return loan;
         }
 
+        public async Task<Renewal> AddRenewalAsync(Renewal renewal)
+        {
+            var loan = await _context.Loans
+                .Include(l => l.Renewals)
+                .FirstOrDefaultAsync(l => l.Id == renewal.LoanId)
+                ?? throw new InvalidOperationException("Loan does not exist.");
+            if (loan.ReturnDate != null)
+                throw new InvalidOperationException("Cannot renew a returned loan.");
+            if (loan.RenewalsRemaining == 0)
+                throw new InvalidOperationException($"Maximum renewals ({loan.MaxRenewalsAllowed}) reached for this loan.");
+            _context.Renewals.Add(renewal);
+            await _context.SaveChangesAsync();
+            return renewal;
+        }
+
         public async Task<Renewal> RenewAsync(int loanId)
         {
             var loan = await _context.Loans

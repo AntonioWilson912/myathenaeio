@@ -294,6 +294,20 @@ namespace MyAthenaeio.Data.Repositories
             }
         }
 
+        public async Task AddAuthorAsync(int bookId, int authorId)
+        {
+            var book = await _context.Books
+                .Include(b => b.Authors)
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book not found.");
+            var author = await _context.Authors.FindAsync(authorId) ?? throw new InvalidOperationException("Author not found.");
+            if (!book.Authors.Any(a => a.Id == authorId))
+            {
+                book.Authors.Add(author);
+                await _context.SaveChangesAsync();
+            }
+        }
+
         public async Task AddGenreAsync(int bookId, int genreId)
         {
             var book = await _context.Books

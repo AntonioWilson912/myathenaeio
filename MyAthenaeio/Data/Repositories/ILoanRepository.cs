@@ -21,6 +21,7 @@ namespace MyAthenaeio.Data.Repositories
         // Loan operations
         Task<Loan> CheckoutAsync(int bookCopyId, int borrowerId, int maxRenewals = 2, int loanPeriodDays = 14);
         Task<Loan> ReturnAsync(int loanId);
+        Task<Renewal> AddRenewalAsync(Renewal renewal);
         Task<Renewal> RenewAsync(int loanId);
 
         // Loan calculations

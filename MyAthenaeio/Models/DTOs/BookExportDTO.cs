@@ -9,6 +9,8 @@
         public string? Description { get; set; }
         public string? Publisher { get; set; }
         public int? PublicationYear { get; set; }
+        public DateTime DateAdded { get; set; }
         public string? CoverImageUrl { get; set; }
+        public string? Notes { get; set; }
     }
 }

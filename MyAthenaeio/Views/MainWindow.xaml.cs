@@ -1,5 +1,4 @@
 ﻿using Microsoft.Win32;
-using MyAthenaeio.Data;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
@@ -11,7 +10,6 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -149,9 +147,80 @@ namespace MyAthenaeio.Views
             }
         }
 
-        private void ImportLibrary_Click(object sender, RoutedEventArgs e)
+        private async void ImportLibrary_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Library import funcitonality coming soon!", "That Is Unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var result = MessageBox.Show(
+                "Importing a library will merge data from the selected file into your existing library. " +
+                "Duplicates will be avoided based on ISBNs and other unique fields.\n\n" +
+                "Are you sure you want to proceed with importing a library?",
+                "Confirm Import",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                var openDialog = new OpenFileDialog
+                {
+                    Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                    DefaultExt = "json",
+                    Multiselect = false
+                };
+
+                if (openDialog.ShowDialog() == true)
+                {
+                    var progressDialog = new ProgressDialog("Importing Library", "Preparing import...") { Owner = this };
+                    progressDialog.Show();
+
+                    try
+                    {
+                        var importResult = await IMEXService.ImportFromFileAsync(openDialog.FileName);
+                        progressDialog.Close();
+
+                        if (importResult.Success)
+                        {
+                            MessageBox.Show($"Import complete!\n\n" + 
+                                            $"Books Added: {importResult.BooksImported}\n" +
+                                            $"Authors Added: {importResult.AuthorsImported}\n" +
+                                            $"Genres Added: {importResult.GenresImported}\n" +
+                                            $"Tags Imported: {importResult.TagsImported}\n" +
+                                            $"Collections Imported: {importResult.CollectionsImported}\n" +
+                                            $"Borrowers Imported: {importResult.BorrowersImported}\n" +
+                                            $"Book Copies Imported: {importResult.CopiesImported}\n" +
+                                            $"Active Loans Imported: {importResult.LoansImported}\n" +
+                                            $"Renewal Records Imported: {importResult.RenewalsImported}\n" +
+                                            $"Items skipped (duplicates): {importResult.ItemsSkipped}",
+                                "Import Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                            // Refresh the view
+                            LoadBookData();
+                        }
+                        else
+                        {
+                            var errorMessage = "Import failed with the following errors:\n\n" +
+                                string.Join("\n", importResult.Errors);
+                            MessageBox.Show(errorMessage, "Import Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
+                    }
+                    finally
+                    {
+                        if (progressDialog.IsVisible)
+                            progressDialog.Close();
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                MessageBox.Show($"Error parsing import file: {ex.Message}\n\nMake sure the file is a valid library export.",
+                    "Import Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error importing library: {ex.Message}",
+                    "Import Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)
