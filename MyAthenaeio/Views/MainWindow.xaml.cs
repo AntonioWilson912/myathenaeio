@@ -223,6 +223,12 @@ namespace MyAthenaeio.Views
             }
         }
 
+        private async void RestoreFromBackup_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new RestoreDialog { Owner = this };
+            dialog.ShowDialog();
+        }
+
         private void Exit_Click(object sender, RoutedEventArgs e)
         {
             SaveScanData();

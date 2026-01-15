@@ -1,5 +1,8 @@
 ﻿using System.Diagnostics;
 using System.IO;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using MyAthenaeio.Data;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using Newtonsoft.Json;
@@ -518,6 +521,53 @@ namespace MyAthenaeio.Services
             return result;
         }
 
-        // Should be able to restore database (delete database, recreate it)
+        public static async Task RestoreDatabaseAsync(string backupFilePath)
+        {
+            if (!File.Exists(backupFilePath))
+            {
+                throw new FileNotFoundException("Backup file not found", backupFilePath);
+            }
+
+            // Close all database connections
+            SqliteConnection.ClearAllPools();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(100); // Small delay to ensure all connections are closed
+
+            // Create safety backup
+            var safetyBackupPath = AppDbContext.DbPath + ".safety";
+            File.Copy(AppDbContext.DbPath, safetyBackupPath, overwrite: true);
+
+            try
+            {
+                // Restore the backup
+                File.Copy(backupFilePath, AppDbContext.DbPath, overwrite: true);
+                
+                // Validate it works
+                using (var context = new AppDbContext())
+                {
+                    if (!await context.Database.CanConnectAsync())
+                    {
+                        throw new InvalidOperationException("Cannot connect to the restored database.");
+                    }
+                    
+
+                    // Sanity check
+                    _ = await context.Books.CountAsync();
+                }
+
+                // Success
+                File.Delete(safetyBackupPath);
+            } catch (Exception ex)
+            {
+                // Restore from safety backup
+                if (File.Exists(safetyBackupPath))
+                {
+                    File.Copy(safetyBackupPath, AppDbContext.DbPath, overwrite: true);
+                    File.Delete(safetyBackupPath);
+                }
+                throw new InvalidOperationException($"Failed to restore database: {ex.Message}");
+            }
+        }
     }
 }

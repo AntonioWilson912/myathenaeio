@@ -2,6 +2,8 @@
 using Application = System.Windows.Application;
 using System.Windows;
 using MessageBox = System.Windows.MessageBox;
+using System.Threading.Tasks;
+using MyAthenaeio.Services;
 
 namespace MyAthenaeio
 {
@@ -10,7 +12,7 @@ namespace MyAthenaeio
     /// </summary>
     public partial class App : Application
     {
-        protected override void OnStartup(StartupEventArgs e)
+        protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
 
@@ -18,6 +20,9 @@ namespace MyAthenaeio
             try
             {
                 DatabaseInitializer.Initialize();
+
+                // Check and create automatic backup if needed
+                await BackupService.CheckAndCreateAutomaticBackupAsync();
             }
             catch (Exception ex)
             {
@@ -31,5 +36,4 @@ namespace MyAthenaeio
             }
         }
     }
-
 }
