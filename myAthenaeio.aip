@@ -10,10 +10,10 @@
     <ROW Property="ALLUSERS" Value="1"/>
     <ROW Property="ARPCONTACT" Value="support@wilsonssolutions.com"/>
     <ROW Property="Manufacturer" Value="Wilson&apos;s Solutions"/>
-    <ROW Property="ProductCode" Value="1033:{1345CF9B-4E0E-4139-ACE2-CD6842C4720B} " Type="16"/>
+    <ROW Property="ProductCode" Value="1033:{5D04ED22-8D4F-45A6-A5C1-0C0F62BB2943} " Type="16"/>
     <ROW Property="ProductLanguage" Value="1033"/>
     <ROW Property="ProductName" Value="myAthenaeio"/>
-    <ROW Property="ProductVersion" Value="0.1.0" Options="32"/>
+    <ROW Property="ProductVersion" Value="0.2.0" Options="4"/>
     <ROW Property="SecureCustomProperties" Value="OLDPRODUCTS;AI_NEWERPRODUCTFOUND"/>
     <ROW Property="UpgradeCode" Value="{51E85D82-FE5D-447A-84D0-35C35107FCFC}"/>
     <ROW Property="WindowsType9X" MultiBuildValue="DefaultBuild:Windows 9x/ME" ValueLocId="-"/>
