@@ -6,6 +6,7 @@ namespace MyAthenaeio.Data.Repositories
     {
         Task<TEntity?> GetByIdAsync(int id);
         Task<List<TEntity>> GetAllAsync();
+        Task<List<TEntity>> GetAllAsNoTrackingAsync();
         Task<List<TEntity>> FindAsync(Expression<Func<TEntity, bool>> predicate);
         Task<TEntity?> FirstOrDefaultAsync(Expression<Func<TEntity, bool>> predicate);
         Task<bool> AnyAsync(Expression<Func<TEntity, bool>> predicate);

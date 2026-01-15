@@ -8,6 +8,7 @@ namespace MyAthenaeio.Data.Repositories
         // Override base methods with include options
         Task<Loan?> GetByIdAsync(int id, LoanIncludeOptions? options = null);
         Task<List<Loan>> GetAllAsync(LoanIncludeOptions? options = null);
+        Task<List<Loan>> GetAllAsNoTrackingAsync(LoanIncludeOptions? options = null);
 
         // Loan-specific queries
         Task<List<Loan>> GetActiveLoansAsync(LoanIncludeOptions? options = null);
@@ -20,6 +21,7 @@ namespace MyAthenaeio.Data.Repositories
         // Loan operations
         Task<Loan> CheckoutAsync(int bookCopyId, int borrowerId, int maxRenewals = 2, int loanPeriodDays = 14);
         Task<Loan> ReturnAsync(int loanId);
+        Task<Renewal> AddRenewalAsync(Renewal renewal);
         Task<Renewal> RenewAsync(int loanId);
 
         // Loan calculations

@@ -8,6 +8,7 @@ namespace MyAthenaeio.Data.Repositories
         // BookCopy-specific queries
         Task<BookCopy?> GetByIdAsync(int bookCopyId, BookCopyIncludeOptions? options = null);
         Task<List<BookCopy>> GetByBookAsync(int bookId);
+        Task<List<BookCopy>> GetAllAsNoTrackingAsync(BookCopyIncludeOptions? options = null);
         Task<List<BookCopy>> GetAvailableCopiesAsync(int bookId);
         Task<BookCopy?> GetByCopyNumberAsync(int bookId, string copyNumber);
         Task<int> GetAvailableCountAsync(int bookId);

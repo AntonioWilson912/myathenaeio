@@ -20,6 +20,15 @@ namespace MyAthenaeio.Data.Repositories
             return await query.FirstOrDefaultAsync(b => b.Id == id);
         }
 
+        public async Task<Borrower?> GetByNameAsync(string name, BorrowerIncludeOptions? options = null)
+        {
+            options ??= BorrowerIncludeOptions.Default;
+            if (options.ForceReload)
+                DetachAll();
+            var query = BuildQuery(_dbSet.AsQueryable(), options);
+            return await query.FirstOrDefaultAsync(b => b.Name.ToLower() == name.ToLower());
+        }
+
         public override async Task<List<Borrower>> GetAllAsync()
         {
             return await GetAllAsync(BorrowerIncludeOptions.Default);
@@ -33,6 +42,22 @@ namespace MyAthenaeio.Data.Repositories
                 DetachAll();
 
             var query = BuildQuery(_dbSet.AsQueryable(), options);
+            return await query.OrderBy(b => b.Name).ToListAsync();
+        }
+
+        public override async Task<List<Borrower>> GetAllAsNoTrackingAsync()
+        {
+            return await GetAllAsNoTrackingAsync(BorrowerIncludeOptions.Default);
+        }
+
+        public async Task<List<Borrower>> GetAllAsNoTrackingAsync(BorrowerIncludeOptions? options = null)
+        {
+            options ??= BorrowerIncludeOptions.Default;
+
+            if (options.ForceReload)
+                DetachAll();
+
+            var query = BuildQuery(_dbSet.AsQueryable().AsNoTracking(), options);
             return await query.OrderBy(b => b.Name).ToListAsync();
         }
 

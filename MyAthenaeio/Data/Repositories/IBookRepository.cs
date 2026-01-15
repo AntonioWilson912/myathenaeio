@@ -9,6 +9,7 @@ namespace MyAthenaeio.Data.Repositories
         // Override base methods with include options
         Task<Book?> GetByIdAsync(int id, BookIncludeOptions? options = null);
         Task<List<Book>> GetAllAsync(BookIncludeOptions? options = null);
+        Task<List<Book>> GetAllAsNoTrackingAsync(BookIncludeOptions? options = null);
 
         // Book-specific queries with include options
         Task<Book?> GetByISBNAsync(string isbn, BookIncludeOptions? options = null);
@@ -28,6 +29,7 @@ namespace MyAthenaeio.Data.Repositories
         Task<bool> IsAvailableAsync(int bookId);
 
         // Relationship updates
+        Task AddAuthorAsync(int bookId, int authorId);
         Task AddGenreAsync(int bookId, int genreId);
         Task AddTagAsync(int bookId, int tagId);
         Task AddCollectionAsync(int bookId, int collectionId);

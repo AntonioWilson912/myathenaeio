@@ -1,20 +1,19 @@
-﻿using System.Collections.ObjectModel;
-using System.IO;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Text.Json;
-using System.Windows.Controls;
-using MyAthenaeio.Scanner;
-using MyAthenaeio.Services;
-using MyAthenaeio.Utils;
+﻿using Microsoft.Win32;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
+using MyAthenaeio.Scanner;
+using MyAthenaeio.Services;
+using MyAthenaeio.Utils;
 using MyAthenaeio.Views.Books;
+using System.Collections.ObjectModel;
 using System.Diagnostics;
-using MyAthenaeio.Data;
-using System.Threading.Tasks;
+using System.IO;
+using System.Text.Json;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
 
 namespace MyAthenaeio.Views
 {
@@ -98,14 +97,136 @@ namespace MyAthenaeio.Views
 
         #region Menu Event Handlers
 
-        private void ExportLibrary_Click(object sender, RoutedEventArgs e)
+        private async void ExportLibrary_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Library export funcitonality coming soon!", "That Is Unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+            try
+            {
+                var saveDialog = new SaveFileDialog
+                {
+                    Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                    DefaultExt = "json",
+                    FileName = $"library_export_{DateTime.Now:yyyyMMdd_HHmmss}.json"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    var progressDialog = new ProgressDialog("Exporting Library", "Preparing export...") { Owner = this };
+                    progressDialog.Show();
+
+                    try
+                    {
+                        var export = await IMEXService.ExportToFileAsync(saveDialog.FileName);
+
+                        progressDialog.Close();
+
+                        MessageBox.Show($"Library exported successfully!\n\n" +
+                                       $"Books: {export.Statistics.TotalBooks}\n" +
+                                       $"Authors: {export.Statistics.TotalAuthors}\n" +
+                                       $"Genres: {export.Statistics.TotalGenres}\n" +
+                                       $"Tags: {export.Statistics.TotalTags}\n" +
+                                       $"Collections: {export.Statistics.TotalCollections}\n" +
+                                       $"Borrowers: {export.Statistics.TotalBorrowers}\n" +
+                                       $"Book Copies: {export.Statistics.TotalCopies}\n" +
+                                       $"Active Loans: {export.Statistics.ActiveLoans}\n" +
+                                       $"Completed Loans: {export.Statistics.CompletedLoans}\n" +
+                                       $"Renewal Records: {export.Statistics.TotalRenewals}\n\n" +
+                                       $"File: {saveDialog.FileName}",
+                            "Export Complete", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    finally
+                    {
+                        if (progressDialog.IsVisible)
+                            progressDialog.Close();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error exporting library: {ex.Message}",
+                    "Export Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
 
-        private void ImportLibrary_Click(object sender, RoutedEventArgs e)
+        private async void ImportLibrary_Click(object sender, RoutedEventArgs e)
         {
-            MessageBox.Show("Library import funcitonality coming soon!", "That Is Unavailable", MessageBoxButton.OK, MessageBoxImage.Warning);
+            var result = MessageBox.Show(
+                "Importing a library will merge data from the selected file into your existing library. " +
+                "Duplicates will be avoided based on ISBNs and other unique fields.\n\n" +
+                "Are you sure you want to proceed with importing a library?",
+                "Confirm Import",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (result != MessageBoxResult.Yes)
+                return;
+
+            try
+            {
+                var openDialog = new OpenFileDialog
+                {
+                    Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
+                    DefaultExt = "json",
+                    Multiselect = false
+                };
+
+                if (openDialog.ShowDialog() == true)
+                {
+                    var progressDialog = new ProgressDialog("Importing Library", "Preparing import...") { Owner = this };
+                    progressDialog.Show();
+
+                    try
+                    {
+                        var importResult = await IMEXService.ImportFromFileAsync(openDialog.FileName);
+                        progressDialog.Close();
+
+                        if (importResult.Success)
+                        {
+                            MessageBox.Show($"Import complete!\n\n" + 
+                                            $"Books Added: {importResult.BooksImported}\n" +
+                                            $"Authors Added: {importResult.AuthorsImported}\n" +
+                                            $"Genres Added: {importResult.GenresImported}\n" +
+                                            $"Tags Imported: {importResult.TagsImported}\n" +
+                                            $"Collections Imported: {importResult.CollectionsImported}\n" +
+                                            $"Borrowers Imported: {importResult.BorrowersImported}\n" +
+                                            $"Book Copies Imported: {importResult.CopiesImported}\n" +
+                                            $"Active Loans Imported: {importResult.LoansImported}\n" +
+                                            $"Renewal Records Imported: {importResult.RenewalsImported}\n" +
+                                            $"Items skipped (duplicates): {importResult.ItemsSkipped}",
+                                "Import Successful", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                            // Refresh the view
+                            LoadBookData();
+                        }
+                        else
+                        {
+                            var errorMessage = "Import failed with the following errors:\n\n" +
+                                string.Join("\n", importResult.Errors);
+                            MessageBox.Show(errorMessage, "Import Failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
+                    }
+                    finally
+                    {
+                        if (progressDialog.IsVisible)
+                            progressDialog.Close();
+                    }
+                }
+            }
+            catch (JsonException ex)
+            {
+                MessageBox.Show($"Error parsing import file: {ex.Message}\n\nMake sure the file is a valid library export.",
+                    "Import Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error importing library: {ex.Message}",
+                    "Import Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private async void RestoreFromBackup_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new RestoreDialog { Owner = this };
+            dialog.ShowDialog();
         }
 
         private void Exit_Click(object sender, RoutedEventArgs e)

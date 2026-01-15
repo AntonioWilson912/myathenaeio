@@ -1,5 +1,4 @@
 name: Build myAthenaeio
-
 on:
   push:
     branches: [ "main" ]
@@ -41,11 +40,13 @@ jobs:
       run: dotnet publish MyAthenaeio/MyAthenaeio.csproj --configuration Release --runtime win-x64 --self-contained false --output ./publish
     
     - name: Install Advanced Installer
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
       run: |
         choco install advanced-installer -y
         refreshenv
-
+    
     - name: Build Installer
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
       run: |
         $aiPath = Get-ChildItem "C:\Program Files (x86)\Caphyon" -Filter "AdvancedInstaller.com" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
         if (-not $aiPath) {

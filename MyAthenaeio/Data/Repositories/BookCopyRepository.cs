@@ -19,6 +19,23 @@ namespace MyAthenaeio.Data.Repositories
             return await query.FirstOrDefaultAsync(bc => bc.Id == bookCopyId);
         }
 
+        public override async Task<List<BookCopy>> GetAllAsNoTrackingAsync()
+        {
+            return await GetAllAsNoTrackingAsync(BookCopyIncludeOptions.Default);
+        }
+
+        public async Task<List<BookCopy>> GetAllAsNoTrackingAsync(BookCopyIncludeOptions? options = null)
+        {
+            options ??= BookCopyIncludeOptions.Default;
+
+            if (options.ForceReload)
+                DetachAll();
+
+            var query = BuildQuery(_dbSet.AsQueryable().AsNoTracking(), options);
+
+            return await query.ToListAsync();
+        }
+
         public async Task<List<BookCopy>> GetByBookAsync(int bookId)
         {
             return await _dbSet

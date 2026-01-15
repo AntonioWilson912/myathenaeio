@@ -38,6 +38,22 @@ namespace MyAthenaeio.Data.Repositories
             return await query.OrderBy(b => b.Title).ToListAsync();
         }
 
+        public override async Task<List<Book>> GetAllAsNoTrackingAsync()
+        {
+            return await GetAllAsNoTrackingAsync(BookIncludeOptions.Default);
+        }
+
+        public async Task<List<Book>> GetAllAsNoTrackingAsync(BookIncludeOptions? options = null)
+        {
+            options ??= BookIncludeOptions.Default;
+
+            if (options.ForceReload)
+                DetachAll();
+
+            var query = BuildQuery(_dbSet.AsQueryable().AsNoTracking(), options);
+            return await query.OrderBy(b => b.Title).ToListAsync();
+        }
+
         public async Task<Book?> GetByISBNAsync(string isbn, BookIncludeOptions? options = null)
         {
             options ??= BookIncludeOptions.Default;
@@ -275,6 +291,20 @@ namespace MyAthenaeio.Data.Repositories
                 System.Diagnostics.Debug.WriteLine($"ERROR: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"INNER: {ex.InnerException?.Message}");
                 throw;
+            }
+        }
+
+        public async Task AddAuthorAsync(int bookId, int authorId)
+        {
+            var book = await _context.Books
+                .Include(b => b.Authors)
+                .FirstOrDefaultAsync(b => b.Id == bookId)
+                ?? throw new InvalidOperationException("Book not found.");
+            var author = await _context.Authors.FindAsync(authorId) ?? throw new InvalidOperationException("Author not found.");
+            if (!book.Authors.Any(a => a.Id == authorId))
+            {
+                book.Authors.Add(author);
+                await _context.SaveChangesAsync();
             }
         }
 

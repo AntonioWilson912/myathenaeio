@@ -39,6 +39,22 @@ namespace MyAthenaeio.Data.Repositories
             return await query.OrderByDescending(l => l.CheckoutDate).ToListAsync();
         }
 
+        public override async Task<List<Loan>> GetAllAsNoTrackingAsync()
+        {
+            return await GetAllAsNoTrackingAsync(LoanIncludeOptions.Default);
+        }
+
+        public async Task<List<Loan>> GetAllAsNoTrackingAsync(LoanIncludeOptions? options = null)
+        {
+            options ??= LoanIncludeOptions.Default;
+
+            if (options.ForceReload)
+                DetachAll();
+
+            var query = BuildQuery(_dbSet.AsQueryable().AsNoTracking(), options);
+            return await query.OrderByDescending(l => l.CheckoutDate).ToListAsync();
+        }
+
         public async Task<List<Loan>> GetActiveLoansAsync(LoanIncludeOptions? options = null)
         {
             options ??= LoanIncludeOptions.Default;
@@ -197,6 +213,21 @@ namespace MyAthenaeio.Data.Repositories
             await _context.SaveChangesAsync();
 
             return loan;
+        }
+
+        public async Task<Renewal> AddRenewalAsync(Renewal renewal)
+        {
+            var loan = await _context.Loans
+                .Include(l => l.Renewals)
+                .FirstOrDefaultAsync(l => l.Id == renewal.LoanId)
+                ?? throw new InvalidOperationException("Loan does not exist.");
+            if (loan.ReturnDate != null)
+                throw new InvalidOperationException("Cannot renew a returned loan.");
+            if (loan.RenewalsRemaining == 0)
+                throw new InvalidOperationException($"Maximum renewals ({loan.MaxRenewalsAllowed}) reached for this loan.");
+            _context.Renewals.Add(renewal);
+            await _context.SaveChangesAsync();
+            return renewal;
         }
 
         public async Task<Renewal> RenewAsync(int loanId)

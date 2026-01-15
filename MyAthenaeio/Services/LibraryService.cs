@@ -3,6 +3,8 @@ using MyAthenaeio.Data.Repositories;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
+using System.CodeDom;
+using System.Diagnostics;
 
 namespace MyAthenaeio.Services
 {
@@ -142,6 +144,15 @@ namespace MyAthenaeio.Services
         {
             using var repos = new RepositoryFactory();
             return await repos.Books.AddAsync(book, authorInfos, genreIds, tagIds, collectionIds);
+        }
+
+        /// <summary>
+        /// Adds an author to a book.
+        /// </summary>
+        public static async Task AddAuthorToBookAsync(int bookId, int genreId)
+        {
+            using var repos = new RepositoryFactory();
+            await repos.Books.AddAuthorAsync(bookId, genreId);
         }
 
         /// <summary>
@@ -518,6 +529,15 @@ namespace MyAthenaeio.Services
         }
 
         /// <summary>
+        /// Gets a borrower by name.
+        /// </summary>
+        public static async Task<Borrower?> GetBorrowerByNameAsync(string name, BorrowerIncludeOptions? options = null)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Borrowers.GetByNameAsync(name, options);
+        }
+
+        /// <summary>
         /// Gets a borrower by email.
         /// </summary>
         public static async Task<Borrower?> GetBorrowerByEmailAsync(string email)
@@ -781,6 +801,21 @@ namespace MyAthenaeio.Services
         #region Loans
 
         /// <summary>
+        /// Adds a new loan.
+        /// </summary>
+        public static async Task<Loan> AddLoanAsync(Loan loan)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.AddAsync(loan);
+        }
+
+        public static async Task<Renewal> AddRenewalAsync(Renewal renewal)
+        {
+            using var repos = new RepositoryFactory();
+            return await repos.Loans.AddRenewalAsync(renewal);
+        }
+
+        /// <summary>
         /// Checks out a book to a borrower.
         /// </summary>
         public static async Task<Loan> CheckoutBookAsync(int bookCopyId, int borrowerId, int maxRenewals = 2, int loanPeriodDays = 14)
@@ -814,6 +849,15 @@ namespace MyAthenaeio.Services
         {
             using var repos = new RepositoryFactory();
             return await repos.Loans.GetAllAsync(options);
+        }
+
+        public static async Task<Loan?> GetLoanByDetailsAsync(int bookCopyId, int borrowerId, DateTime checkoutDate)
+        {
+            var loans = await GetAllLoansAsync();
+            return loans.FirstOrDefault(l =>
+                l.BookCopyId == bookCopyId &&
+                l.BorrowerId == borrowerId &&
+                l.CheckoutDate.Date == checkoutDate.Date);
         }
 
         /// <summary>
