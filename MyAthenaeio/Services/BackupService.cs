@@ -1,11 +1,13 @@
 ﻿using MyAthenaeio.Data;
-using System.Diagnostics;
 using System.IO;
+using Serilog;
 
 namespace MyAthenaeio.Services
 {
     public class BackupService
     {
+        private static readonly ILogger _logger = Log.ForContext<BackupService>();
+
         private static readonly string BackupFolder = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "myAthenaeio", "Backups"
@@ -19,15 +21,21 @@ namespace MyAthenaeio.Services
 
                 var lastBackup = GetMostRecentBackup();
 
-                // Create backup if none exists or if last backup is older than 7 days
                 if (lastBackup == null || File.GetCreationTime(lastBackup) < DateTime.Now.AddDays(-7))
                 {
+                    _logger.Information("Creating automatic backup (last backup: {LastBackup})",
+                        lastBackup == null ? "never" : File.GetCreationTime(lastBackup).ToString("yyyy-MM-dd"));
                     await CreateAutomaticBackupAsync();
+                }
+                else
+                {
+                    _logger.Debug("Automatic backup not needed, last backup: {LastBackup}",
+                        File.GetCreationTime(lastBackup).ToString("yyyy-MM-dd"));
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Error during automatic backup check/creation: {ex.Message}");
+                _logger.Error(ex, "Failed during automatic backup check/creation");
             }
         }
 
@@ -44,12 +52,17 @@ namespace MyAthenaeio.Services
             var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
             var backupFilePath = Path.Combine(BackupFolder, $"library_backup_{timestamp}.db");
 
-            File.Copy(AppDbContext.DbPath, backupFilePath);
-
-            // Keep only the latest 5 backups
-            CleanupOldBackups(keepCount: 5);
-
-            Debug.WriteLine($"Automatic backup created at {backupFilePath}");
+            try
+            {
+                File.Copy(AppDbContext.DbPath, backupFilePath);
+                CleanupOldBackups(keepCount: 5);
+                _logger.Information("Automatic backup created: {BackupPath}", backupFilePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to create automatic backup at {BackupPath}", backupFilePath);
+                throw;
+            }
         }
 
         private static string? GetMostRecentBackup()
@@ -74,10 +87,11 @@ namespace MyAthenaeio.Services
                 try
                 {
                     oldBackup.Delete();
+                    _logger.Debug("Deleted old backup: {BackupPath}", oldBackup.FullName);
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Error deleting backup file {oldBackup.FullName}: {ex.Message}");
+                    _logger.Warning(ex, "Failed to delete old backup: {BackupPath}", oldBackup.FullName);
                 }
             }
         }

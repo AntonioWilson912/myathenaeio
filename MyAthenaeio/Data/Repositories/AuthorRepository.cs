@@ -1,11 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
+using Serilog;
 
 namespace MyAthenaeio.Data.Repositories
 {
     public class AuthorRepository(AppDbContext context) : Repository<Author>(context), IAuthorRepository
     {
+        private static readonly ILogger _logger = Log.ForContext<AuthorRepository>();
 
         #region Query Methods with Include Options
 
@@ -112,10 +114,22 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task<Author> AddAsync(Author author)
         {
-            // Validation
-            ValidateAuthor(author);
+            try
+            {
+                ValidateAuthor(author);
 
-            return await base.AddAsync(author);
+                _logger.Debug("Adding author: {Name}", author.Name);
+
+                var result = await base.AddAsync(author);
+
+                _logger.Information("Author added: {Name} (ID: {Id})", author.Name, author.Id);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to add author: {Name}", author.Name);
+                throw;
+            }
         }
 
         private static void ValidateAuthor(Author author)
@@ -135,18 +149,34 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task UpdateAsync(Author author)
         {
-            // Validation
-            ValidateAuthor(author);
+            try
+            {
+                ValidateAuthor(author);
 
-            var existingAuthor = await _context.Authors.FindAsync(author.Id) ?? throw new InvalidOperationException("Author does not exist.");
+                var existingAuthor = await _context.Authors.FindAsync(author.Id);
+                if (existingAuthor == null)
+                {
+                    _logger.Warning("Update failed: Author {Id} not found", author.Id);
+                    throw new InvalidOperationException("Author does not exist.");
+                }
 
-            existingAuthor.Name = author.Name;
-            existingAuthor.Bio = author.Bio;
-            existingAuthor.OpenLibraryKey = author.OpenLibraryKey;
-            existingAuthor.BirthDate = author.BirthDate;
-            existingAuthor.PhotoUrl = author.PhotoUrl;
+                _logger.Debug("Updating author: {Name} (ID: {Id})", author.Name, author.Id);
 
-            await _context.SaveChangesAsync();
+                existingAuthor.Name = author.Name;
+                existingAuthor.Bio = author.Bio;
+                existingAuthor.OpenLibraryKey = author.OpenLibraryKey;
+                existingAuthor.BirthDate = author.BirthDate;
+                existingAuthor.PhotoUrl = author.PhotoUrl;
+
+                await _context.SaveChangesAsync();
+
+                _logger.Information("Author updated: {Name} (ID: {Id})", author.Name, author.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to update author ID: {Id}", author.Id);
+                throw;
+            }
         }
 
         #endregion
@@ -155,18 +185,34 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task DeleteAsync(int id)
         {
-            var author = await GetByIdAsync(id) ?? throw new InvalidOperationException("Author does not exist.");
+            try
+            {
+                var author = await GetByIdAsync(id);
+                if (author == null)
+                {
+                    _logger.Warning("Delete failed: Author {Id} not found", id);
+                    throw new InvalidOperationException("Author does not exist.");
+                }
 
-            // Prevent deletion if author has books
-            var hasBooks = await _context.Books
-                .AnyAsync(b => b.Authors.Any(a => a.Id == id));
+                var hasBooks = await _context.Books
+                    .AnyAsync(b => b.Authors.Any(a => a.Id == id));
 
-            if (hasBooks)
-                throw new InvalidOperationException(
-                    $"Cannot delete author '{author.Name}' because they have books in the library. " +
-                    "Remove this author from all books first, or delete the books.");
+                if (hasBooks)
+                {
+                    _logger.Warning("Cannot delete author {Id} '{Name}' - has books", id, author.Name);
+                    throw new InvalidOperationException(
+                        $"Cannot delete author '{author.Name}' because they have books in the library. " +
+                        "Remove this author from all books first, or delete the books.");
+                }
 
-            await base.DeleteAsync(author);
+                await base.DeleteAsync(author);
+                _logger.Information("Author deleted: {Name} (ID: {Id})", author.Name, id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to delete author ID: {Id}", id);
+                throw;
+            }
         }
 
         #endregion

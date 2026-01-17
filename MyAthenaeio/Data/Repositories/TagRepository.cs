@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Models.Entities;
+using Serilog;
 
 namespace MyAthenaeio.Data.Repositories
 {
     public class TagRepository(AppDbContext context) : Repository<Tag>(context), ITagRepository
     {
+        private static readonly ILogger _logger = Log.ForContext<TagRepository>();
 
         #region Query Methods
 
@@ -57,18 +59,32 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task<Tag> AddAsync(Tag tag)
         {
-            // Validation
-            ValidateTag(tag);
+            try
+            {
+                ValidateTag(tag);
 
-            // Check for duplicate name
-            var existingTag = await FirstOrDefaultAsync(t =>
-                t.Name.ToLower() == tag.Name.ToLower());
+                _logger.Debug("Adding tag: {Name}", tag.Name);
 
-            if (existingTag != null)
-                throw new InvalidOperationException(
-                    $"Tag '{tag.Name}' already exists.");
+                var existingTag = await FirstOrDefaultAsync(t =>
+                    t.Name.ToLower() == tag.Name.ToLower());
 
-            return await base.AddAsync(tag);
+                if (existingTag != null)
+                {
+                    _logger.Warning("Cannot add tag - duplicate name: {Name}", tag.Name);
+                    throw new InvalidOperationException(
+                        $"Tag '{tag.Name}' already exists.");
+                }
+
+                var result = await base.AddAsync(tag);
+
+                _logger.Information("Tag added: {Name} (ID: {Id})", tag.Name, tag.Id);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to add tag: {Name}", tag.Name);
+                throw;
+            }
         }
 
         private static void ValidateTag(Tag tag)
@@ -88,23 +104,43 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task UpdateAsync(Tag tag)
         {
-            // Validation
-            ValidateTag(tag);
+            try
+            {
+                ValidateTag(tag);
 
-            var existingTag = await _context.Tags.FindAsync(tag.Id) ?? throw new InvalidOperationException("Tag does not exist.");
+                var existingTag = await _context.Tags.FindAsync(tag.Id);
 
-            // Check for duplicate name (excluding current tag)
-            var duplicateTag = await FirstOrDefaultAsync(t =>
-                t.Id != tag.Id &&
-                t.Name.ToLower() == tag.Name.ToLower());
+                if (existingTag == null)
+                {
+                    _logger.Warning("Update failed: Tag {Id} not found", tag.Id);
+                    throw new InvalidOperationException("Tag does not exist.");
+                }
 
-            if (duplicateTag != null)
-                throw new InvalidOperationException(
-                    $"Tag '{tag.Name}' already exists.");
+                _logger.Debug("Updating tag: {Name} (ID: {Id})", tag.Name, tag.Id);
 
-            existingTag.Name = tag.Name;
+                var duplicateTag = await FirstOrDefaultAsync(t =>
+                    t.Id != tag.Id &&
+                    t.Name.ToLower() == tag.Name.ToLower());
 
-            await _context.SaveChangesAsync();
+                if (duplicateTag != null)
+                {
+                    _logger.Warning("Update failed: duplicate name {Name} for tag {Id}",
+                        tag.Name, tag.Id);
+                    throw new InvalidOperationException(
+                        $"Tag '{tag.Name}' already exists.");
+                }
+
+                existingTag.Name = tag.Name;
+
+                await _context.SaveChangesAsync();
+
+                _logger.Information("Tag updated: {Name} (ID: {Id})", tag.Name, tag.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to update tag ID: {Id}", tag.Id);
+                throw;
+            }
         }
 
         #endregion
@@ -113,10 +149,23 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task DeleteAsync(int id)
         {
-            var tag = await GetByIdAsync(id) ?? throw new InvalidOperationException("Tag does not exist.");
+            try
+            {
+                var tag = await GetByIdAsync(id);
+                if (tag == null)
+                {
+                    _logger.Warning("Delete failed: Tag {Id} not found", id);
+                    throw new InvalidOperationException("Tag does not exist.");
+                }
 
-            // Delete the tag
-            await base.DeleteAsync(tag);
+                await base.DeleteAsync(tag);
+                _logger.Information("Tag deleted: {Name} (ID: {Id})", tag.Name, id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to delete tag ID: {Id}", id);
+                throw;
+            }
         }
 
         #endregion

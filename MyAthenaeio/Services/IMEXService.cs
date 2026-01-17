@@ -6,6 +6,7 @@ using MyAthenaeio.Data;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace MyAthenaeio.Services
 {
@@ -14,20 +15,36 @@ namespace MyAthenaeio.Services
     /// </summary>
     public class IMEXService
     {
+        private static readonly ILogger _logger = Log.ForContext<IMEXService>();
+
         public static async Task<LibraryExportDTO> ExportToFileAsync(string filePath)
         {
-            var export = await ExportLibraryAsync();
-            var settings = new JsonSerializerSettings
+            try
             {
-                Formatting = Formatting.Indented,
-                NullValueHandling = NullValueHandling.Ignore,
-                ReferenceLoopHandling = ReferenceLoopHandling.Ignore
-            };
+                _logger.Information("Starting export to file: {FilePath}", filePath);
 
-            var json = JsonConvert.SerializeObject(export, settings);
-            await File.WriteAllTextAsync(filePath, json);
+                var export = await ExportLibraryAsync();
+                var settings = new JsonSerializerSettings
+                {
+                    Formatting = Formatting.Indented,
+                    NullValueHandling = NullValueHandling.Ignore,
+                    ReferenceLoopHandling = ReferenceLoopHandling.Ignore
+                };
 
-            return export;
+                var json = JsonConvert.SerializeObject(export, settings);
+                await File.WriteAllTextAsync(filePath, json);
+
+                _logger.Information("Export completed: {Books} books, {Authors} authors, {Loans} loans to {FilePath}",
+                    export.Statistics.TotalBooks, export.Statistics.TotalAuthors,
+                    export.Statistics.ActiveLoans + export.Statistics.CompletedLoans, filePath);
+
+                return export;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Export failed to file: {FilePath}", filePath);
+                throw;
+            }
         }
 
         private static async Task<LibraryExportDTO> ExportLibraryAsync()
@@ -197,25 +214,40 @@ namespace MyAthenaeio.Services
                 CompletedLoans = export.Loans.Count(l => l.ReturnDate != null),
                 TotalRenewals = export.Renewals.Count
             };
-                
+
             return export;
         }
 
-        // Should be able to import database from JSON
         public static async Task<ImportResult> ImportFromFileAsync(string filePath)
         {
-            var json = await File.ReadAllTextAsync(filePath);
-            var import = JsonConvert.DeserializeObject<LibraryExportDTO>(json);
-
-            if (import == null)
+            try
             {
-                return new ImportResult
-                {
-                    Errors = new List<string> { "Invalid import file format" }
-                };
-            }
+                _logger.Information("Starting import from file: {FilePath}", filePath);
 
-            return await ImportLibraryAsync(import);
+                var json = await File.ReadAllTextAsync(filePath);
+                var import = JsonConvert.DeserializeObject<LibraryExportDTO>(json);
+
+                if (import == null)
+                {
+                    _logger.Error("Import failed: Invalid JSON format in {FilePath}", filePath);
+                    return new ImportResult
+                    {
+                        Errors = new List<string> { "Invalid import file format" }
+                    };
+                }
+
+                var result = await ImportLibraryAsync(import);
+
+                _logger.Information("Import completed: {Books} books, {Authors} authors, {Skipped} skipped, {Errors} errors",
+                    result.BooksImported, result.AuthorsImported, result.ItemsSkipped, result.Errors.Count);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Import failed from file: {FilePath}", filePath);
+                throw;
+            }
         }
 
         public static async Task<ImportResult> ImportLibraryAsync(LibraryExportDTO import)
@@ -517,48 +549,51 @@ namespace MyAthenaeio.Services
                     Debug.WriteLine($"Inner exception error: {ex.InnerException.Message}");
                 }
             }
-            
+
             return result;
         }
 
         public static async Task ResetDatabaseAsync()
         {
+            _logger.Warning("Database reset initiated");
+
             SqliteConnection.ClearAllPools();
             GC.Collect();
             GC.WaitForPendingFinalizers();
-            await Task.Delay(100); // Small delay to ensure all connections are closed
+            await Task.Delay(100);
 
-            // Create safety backup in case reset does not work
             var safetyBackupPath = AppDbContext.DbPath + ".safety";
-            File.Copy(AppDbContext.DbPath, safetyBackupPath, overwrite: true);
 
             try
             {
-                // Delete existing database file
+                File.Copy(AppDbContext.DbPath, safetyBackupPath, overwrite: true);
+                _logger.Debug("Safety backup created: {BackupPath}", safetyBackupPath);
+
                 if (File.Exists(AppDbContext.DbPath))
                 {
                     File.Delete(AppDbContext.DbPath);
                 }
 
-                // Recreate the database
                 using (var context = new AppDbContext())
                 {
                     await context.Database.MigrateAsync();
                 }
 
-                // Success - delete safety backup
                 File.Delete(safetyBackupPath);
-
+                _logger.Information("Database reset completed successfully");
             }
             catch (Exception ex)
             {
-                // Restore from safety backup
+                _logger.Error(ex, "Database reset failed, attempting to restore backup");
+
                 if (File.Exists(safetyBackupPath))
                 {
                     File.Copy(safetyBackupPath, AppDbContext.DbPath, overwrite: true);
                     File.Delete(safetyBackupPath);
+                    _logger.Information("Database restored from safety backup");
                 }
-                throw new InvalidOperationException($"Failed to reset database: {ex.Message}");
+
+                throw new InvalidOperationException($"Failed to reset database: {ex.Message}", ex);
             }
         }
 
@@ -566,48 +601,51 @@ namespace MyAthenaeio.Services
         {
             if (!File.Exists(backupFilePath))
             {
+                _logger.Error("Restore failed: Backup file not found at {BackupPath}", backupFilePath);
                 throw new FileNotFoundException("Backup file not found", backupFilePath);
             }
 
-            // Close all database connections
+            _logger.Information("Starting database restore from: {BackupPath}", backupFilePath);
+
             SqliteConnection.ClearAllPools();
             GC.Collect();
             GC.WaitForPendingFinalizers();
-            await Task.Delay(100); // Small delay to ensure all connections are closed
+            await Task.Delay(100);
 
-            // Create safety backup
             var safetyBackupPath = AppDbContext.DbPath + ".safety";
-            File.Copy(AppDbContext.DbPath, safetyBackupPath, overwrite: true);
 
             try
             {
-                // Restore the backup
+                File.Copy(AppDbContext.DbPath, safetyBackupPath, overwrite: true);
+                _logger.Debug("Safety backup created before restore");
+
                 File.Copy(backupFilePath, AppDbContext.DbPath, overwrite: true);
-                
-                // Validate it works
+
                 using (var context = new AppDbContext())
                 {
                     if (!await context.Database.CanConnectAsync())
                     {
                         throw new InvalidOperationException("Cannot connect to the restored database.");
                     }
-                    
 
-                    // Sanity check
                     _ = await context.Books.CountAsync();
                 }
 
-                // Success
                 File.Delete(safetyBackupPath);
-            } catch (Exception ex)
+                _logger.Information("Database restored successfully from: {BackupPath}", backupFilePath);
+            }
+            catch (Exception ex)
             {
-                // Restore from safety backup
+                _logger.Error(ex, "Database restore failed, restoring safety backup");
+
                 if (File.Exists(safetyBackupPath))
                 {
                     File.Copy(safetyBackupPath, AppDbContext.DbPath, overwrite: true);
                     File.Delete(safetyBackupPath);
+                    _logger.Information("Original database restored from safety backup");
                 }
-                throw new InvalidOperationException($"Failed to restore database: {ex.Message}");
+
+                throw new InvalidOperationException($"Failed to restore database: {ex.Message}", ex);
             }
         }
     }
