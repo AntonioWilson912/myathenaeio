@@ -54,7 +54,6 @@ jobs:
           exit 1
         }
         Write-Host "Found Advanced Installer at: $aiPath"
-        
         & $aiPath /build myAthenaeio.aip
       shell: powershell
     
