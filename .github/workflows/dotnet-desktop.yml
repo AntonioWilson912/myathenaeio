@@ -55,15 +55,6 @@ jobs:
         }
         Write-Host "Found Advanced Installer at: $aiPath"
         
-        # Update the source path to the publish directory
-        & $aiPath /edit myAthenaeio.aip /SetSourcePath ".\publish"
-        
-        # Add Desktop shortcut
-        & $aiPath /edit myAthenaeio.aip /NewShortcut -name "myAthenaeio" -target "APPDIR\publish\myAthenaeio.exe" -location "StartMenuFolder" -icon "APPDIR\publish\myAthenaeio.exe"
-        
-        # Add Start Menu shortcut
-        & $aiPath /edit myAthenaeio.aip /NewShortcut -name "myAthenaeio" -target "APPDIR\publish\myAthenaeio.exe" -location "ShortcutFolder" -icon "APPDIR\publish\myAthenaeio.exe"
-        
         & $aiPath /build myAthenaeio.aip
       shell: powershell
     
