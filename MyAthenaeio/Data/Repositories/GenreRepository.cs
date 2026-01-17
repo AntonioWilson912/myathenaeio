@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Models.Entities;
+using Serilog;
 
 namespace MyAthenaeio.Data.Repositories
 {
     public class GenreRepository(AppDbContext context) : Repository<Genre>(context), IGenreRepository
     {
+        private static readonly ILogger _logger = Log.ForContext<GenreRepository>();
 
         #region Query Methods
 
@@ -57,24 +59,37 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task<Genre> AddAsync(Genre genre)
         {
-            // Validation
-            ValidateGenre(genre);
+            try
+            {
+                ValidateGenre(genre);
 
-            // Check for duplicate name
-            var existingGenre = await FirstOrDefaultAsync(g =>
-                g.Name.ToLower() == genre.Name.ToLower());
+                _logger.Debug("Adding genre: {Name}", genre.Name);
 
-            if (existingGenre != null)
-                throw new InvalidOperationException(
-                    $"Genre '{genre.Name}' already exists.");
+                var existingGenre = await FirstOrDefaultAsync(g =>
+                    g.Name.ToLower() == genre.Name.ToLower());
 
-            return await base.AddAsync(genre);
+                if (existingGenre != null)
+                {
+                    _logger.Warning("Cannot add genre - duplicate name: {Name}", genre.Name);
+                    throw new InvalidOperationException(
+                        $"Genre '{genre.Name}' already exists.");
+                }
+
+                var result = await base.AddAsync(genre);
+
+                _logger.Information("Genre added: {Name} (ID: {Id})", genre.Name, genre.Id);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to add genre: {Name}", genre.Name);
+                throw;
+            }
         }
 
         private static void ValidateGenre(Genre genre)
         {
-            if (genre == null)
-                throw new ArgumentNullException(nameof(genre));
+            ArgumentNullException.ThrowIfNull(genre);
 
             if (string.IsNullOrWhiteSpace(genre.Name))
                 throw new ArgumentException("Genre name is required.", nameof(genre));
@@ -89,26 +104,43 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task UpdateAsync(Genre genre)
         {
-            // Validation
-            ValidateGenre(genre);
+            try
+            {
+                ValidateGenre(genre);
 
-            var existingGenre = await _context.Genres.FindAsync(genre.Id);
+                var existingGenre = await _context.Genres.FindAsync(genre.Id);
 
-            if (existingGenre == null)
-                throw new InvalidOperationException("Genre does not exist.");
+                if (existingGenre == null)
+                {
+                    _logger.Warning("Update failed: Genre {Id} not found", genre.Id);
+                    throw new InvalidOperationException("Genre does not exist.");
+                }
 
-            // Check for duplicate name (excluding current genre)
-            var duplicateGenre = await FirstOrDefaultAsync(g =>
-                g.Id != genre.Id &&
-                g.Name.ToLower() == genre.Name.ToLower());
+                _logger.Debug("Updating genre: {Name} (ID: {Id})", genre.Name, genre.Id);
 
-            if (duplicateGenre != null)
-                throw new InvalidOperationException(
-                    $"Genre '{genre.Name}' already exists.");
+                var duplicateGenre = await FirstOrDefaultAsync(g =>
+                    g.Id != genre.Id &&
+                    g.Name.ToLower() == genre.Name.ToLower());
 
-            existingGenre.Name = genre.Name;
+                if (duplicateGenre != null)
+                {
+                    _logger.Warning("Update failed: duplicate name {Name} for genre {Id}",
+                        genre.Name, genre.Id);
+                    throw new InvalidOperationException(
+                        $"Genre '{genre.Name}' already exists.");
+                }
 
-            await _context.SaveChangesAsync();
+                existingGenre.Name = genre.Name;
+
+                await _context.SaveChangesAsync();
+
+                _logger.Information("Genre updated: {Name} (ID: {Id})", genre.Name, genre.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to update genre ID: {Id}", genre.Id);
+                throw;
+            }
         }
 
         #endregion
@@ -117,10 +149,23 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task DeleteAsync(int id)
         {
-            var genre = await GetByIdAsync(id) ?? throw new InvalidOperationException("Genre does not exist.");
+            try
+            {
+                var genre = await GetByIdAsync(id);
+                if (genre == null)
+                {
+                    _logger.Warning("Delete failed: Genre {Id} not found", id);
+                    throw new InvalidOperationException("Genre does not exist.");
+                }
 
-            // Delete the genre
-            await base.DeleteAsync(genre);
+                await base.DeleteAsync(genre);
+                _logger.Information("Genre deleted: {Name} (ID: {Id})", genre.Name, id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to delete genre ID: {Id}", id);
+                throw;
+            }
         }
 
         #endregion

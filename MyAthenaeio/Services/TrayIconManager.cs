@@ -1,17 +1,18 @@
 ﻿using H.NotifyIcon;
 using MyAthenaeio.Scanner;
 using MyAthenaeio.Views;
-using System.Diagnostics;
 using System.Drawing;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.Imaging;
 using System.IO;
+using Serilog;
 
 namespace MyAthenaeio.Services
 {
     internal class TrayIconManager : IDisposable
     {
+        private static readonly ILogger _logger = Log.ForContext<TrayIconManager>();
         private TaskbarIcon? _taskbarIcon;
         private readonly ScannerManager _scannerManager;
         private int _todayCount = 0;
@@ -33,6 +34,8 @@ namespace MyAthenaeio.Services
         {
             try
             {
+                _logger.Debug("Initializing tray icon");
+
                 _taskbarIcon = new TaskbarIcon
                 {
                     ToolTipText = "myAthenaeio - Book Scanner",
@@ -43,17 +46,16 @@ namespace MyAthenaeio.Services
                 {
                     var iconUri = new Uri("pack://application:,,,/Resources/Icons/tray.ico");
                     _taskbarIcon.IconSource = new BitmapImage(iconUri);
-                    Debug.WriteLine("Icon loaded successfully from embedded resource.");
+                    _logger.Debug("Tray icon loaded from embedded resource");
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine($"Failed to load embedded icon: {ex.Message}");
+                    _logger.Warning(ex, "Failed to load embedded tray icon, using fallback");
                     _taskbarIcon.IconSource = CreateFallbackIcon();
                 }
 
                 _taskbarIcon.ForceCreate();
 
-                // Double-click to restore main window properly
                 _taskbarIcon.TrayMouseDoubleClick += (s, e) =>
                 {
                     Application.Current.Dispatcher.Invoke(() =>
@@ -62,13 +64,14 @@ namespace MyAthenaeio.Services
                     });
                 };
 
-                // Subscribe to scanner events
                 _scannerManager.BarcodeScanned += OnBookScanned;
                 _isInitialized = true;
+
+                _logger.Information("Tray icon initialized successfully");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to initialize tray icon: {ex.Message}");
+                _logger.Error(ex, "Failed to initialize tray icon");
                 _isInitialized = false;
             }
         }
@@ -79,39 +82,29 @@ namespace MyAthenaeio.Services
             {
                 var tempPath = Path.Combine(Path.GetTempPath(), "myAthenaeio_tray_fallback.ico");
 
-                // Only create if doesn't exist
                 if (!File.Exists(tempPath))
                 {
-                    // Create bitmap using System.Drawing
                     using var bitmap = new Bitmap(16, 16);
                     using var graphics = Graphics.FromImage(bitmap);
 
-                    // Background
                     graphics.Clear(Color.DarkBlue);
+                    graphics.FillRectangle(Brushes.White, 3, 3, 10, 10);
 
-                    // Simple book shape
-                    graphics.FillRectangle(
-                        Brushes.White,
-                        3, 3, 10, 10);
-
-                    // Book spine
                     using var pen = new Pen(Color.DarkBlue, 1);
                     graphics.DrawLine(pen, 8, 3, 8, 13);
 
-                    // Save as .ico
                     using var icon = Icon.FromHandle(bitmap.GetHicon());
                     using var fileStream = new FileStream(tempPath, FileMode.Create);
                     icon.Save(fileStream);
                 }
 
-                // Load as BitmapImage
                 var bitmapImage = new BitmapImage(new Uri(tempPath, UriKind.Absolute));
                 bitmapImage.Freeze();
                 return bitmapImage;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to create fallback icon: {ex.Message}");
+                _logger.Error(ex, "Failed to create fallback icon");
                 return null;
             }
         }
@@ -120,7 +113,6 @@ namespace MyAthenaeio.Services
         {
             var menu = new ContextMenu();
 
-            // Open main window
             var openItem = new MenuItem
             {
                 Header = "📚 Open Library",
@@ -137,7 +129,6 @@ namespace MyAthenaeio.Services
 
             menu.Items.Add(new Separator());
 
-            // Status item (non-clickable)
             var statusItem = new MenuItem
             {
                 Header = $"Scanned today: {_todayCount}",
@@ -145,7 +136,6 @@ namespace MyAthenaeio.Services
             };
             menu.Items.Add(statusItem);
 
-            // Scanner mode status
             var modeItem = new MenuItem
             {
                 Header = "Scanner: Active",
@@ -155,7 +145,6 @@ namespace MyAthenaeio.Services
 
             menu.Items.Add(new Separator());
 
-            // Pause/Resume scanner
             var pauseItem = new MenuItem
             {
                 Header = "⏸️ Pause Scanner"
@@ -165,7 +154,6 @@ namespace MyAthenaeio.Services
 
             menu.Items.Add(new Separator());
 
-            // Exit
             var exitItem = new MenuItem
             {
                 Header = "❌ Exit"
@@ -179,7 +167,6 @@ namespace MyAthenaeio.Services
             };
             menu.Items.Add(exitItem);
 
-            // Update menu dynamically when opened
             menu.Opened += (s, e) =>
             {
                 statusItem.Header = $"Scanned today: {_todayCount}";
@@ -205,10 +192,11 @@ namespace MyAthenaeio.Services
         {
             _todayCount++;
 
-            // Show balloon notification
+            _logger.Information("Book scanned via tray: {Barcode} (Today's count: {Count})",
+                barcode, _todayCount);
+
             ShowNotification("Book Scanned", $"ISBN: {barcode}\nTotal today: {_todayCount}");
 
-            // Update tray tooltip
             Application.Current.Dispatcher.Invoke(() =>
             {
                 if (_taskbarIcon != null && _isInitialized)
@@ -218,10 +206,9 @@ namespace MyAthenaeio.Services
 
         public void ShowNotification(string title, string message)
         {
-            // Check if initialized before showing notification
             if (!_isInitialized || _taskbarIcon == null)
             {
-                Debug.WriteLine($"Tray icon not ready. Notification skipped: {title} - {message}");
+                _logger.Debug("Tray icon not ready, notification skipped: {Title}", title);
                 return;
             }
 
@@ -231,19 +218,22 @@ namespace MyAthenaeio.Services
                 {
                     _taskbarIcon?.ShowNotification(title, message);
                 });
+
+                _logger.Debug("Tray notification shown: {Title}", title);
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Failed to show notification: {ex.Message}");
+                _logger.Warning(ex, "Failed to show tray notification: {Title}", title);
             }
         }
 
         private static void ShowMainWindow()
         {
+            _logger.Debug("Showing main window from tray");
+
             var mainWindow = Application.Current.MainWindow;
             if (mainWindow != null)
             {
-                // Handle both minimized and hidden states
                 mainWindow.Show();
                 mainWindow.ShowInTaskbar = true;
 
@@ -256,7 +246,6 @@ namespace MyAthenaeio.Services
                 mainWindow.Focusable = true;
                 mainWindow.Focus();
 
-                // Bring to front
                 mainWindow.Topmost = true;
                 mainWindow.Topmost = false;
             }
@@ -268,14 +257,13 @@ namespace MyAthenaeio.Services
 
             if (_scannerPaused)
             {
-                // Pause scanner
                 _scannerManager.SetMode(ScannerMode.Disabled);
                 menuItem.Header = "▶️ Resume Scanner";
                 ShowNotification("Scanner Paused", "Barcode scanning is paused");
+                _logger.Information("Scanner paused via tray");
             }
             else
             {
-                // Resume scanner
                 var mainWindow = Application.Current.MainWindow;
 
                 if (mainWindow != null && mainWindow.WindowState == WindowState.Minimized &&
@@ -294,11 +282,13 @@ namespace MyAthenaeio.Services
 
                 menuItem.Header = "⏸️ Pause Scanner";
                 ShowNotification("Scanner Resumed", "Barcode scanning is active");
+                _logger.Information("Scanner resumed via tray");
             }
         }
 
         private static void ExitApplication()
         {
+            _logger.Information("Application exit requested from tray");
             Application.Current.Shutdown();
         }
 
@@ -320,6 +310,7 @@ namespace MyAthenaeio.Services
         {
             if (_isInitialized && _taskbarIcon != null)
             {
+                _logger.Debug("Disposing tray icon");
                 Application.Current.Dispatcher.Invoke(() =>
                 {
                     _taskbarIcon?.Dispose();

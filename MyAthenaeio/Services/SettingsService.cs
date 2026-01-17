@@ -1,4 +1,5 @@
 ﻿using MyAthenaeio.Models.Settings;
+using Serilog;
 using System.IO;
 using System.Text.Json;
 
@@ -6,6 +7,7 @@ namespace MyAthenaeio.Services
 {
     public class SettingsService
     {
+        private static readonly ILogger _logger = Log.ForContext<SettingsService>();
         private static readonly string SettingsFilePath = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "myAthenaeio",
@@ -24,10 +26,11 @@ namespace MyAthenaeio.Services
             Settings = LoadSettings();
         }
 
-        private AppSettings LoadSettings()
+        private static AppSettings LoadSettings()
         {
             try
             {
+                _logger.Debug("Loading app settings from {SettingsFilePath}", SettingsFilePath);
                 if (File.Exists(SettingsFilePath))
                 {
                     string json = File.ReadAllText(SettingsFilePath);
@@ -36,7 +39,7 @@ namespace MyAthenaeio.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error loading settings: {ex.Message}");
+                _logger.Warning(ex, "Failed to load app settings.");
             }
 
             return new AppSettings();
@@ -57,7 +60,7 @@ namespace MyAthenaeio.Services
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Error saving settings: {ex.Message}");
+                _logger.Error(ex, "Ffailed to save app settings.");
             }
         }
 

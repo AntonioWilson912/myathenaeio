@@ -1,10 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using MyAthenaeio.Models.Entities;
+using Serilog;
 
 namespace MyAthenaeio.Data.Repositories
 {
     public class CollectionRepository(AppDbContext context) : Repository<Collection>(context), ICollectionRepository
     {
+        private static readonly ILogger _logger = Log.ForContext<CollectionRepository>();
 
         #region Query Methods
 
@@ -58,18 +60,34 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task<Collection> AddAsync(Collection collection)
         {
-            // Validation
-            ValidateCollection(collection);
+            try
+            {
+                // Validation
+                ValidateCollection(collection);
 
-            // Check for duplicate name
-            var existingCollection = await FirstOrDefaultAsync(c =>
-                c.Name.ToLower() == collection.Name.ToLower());
+                _logger.Debug("Adding collection: {Name}", collection.Name);
 
-            if (existingCollection != null)
-                throw new InvalidOperationException(
-                    $"Collection '{collection.Name}' already exists.");
+                // Check for duplicate name
+                var existingCollection = await FirstOrDefaultAsync(c =>
+                    c.Name.ToLower() == collection.Name.ToLower());
 
-            return await base.AddAsync(collection);
+                if (existingCollection != null)
+                {
+                    _logger.Warning("Cannot add collection - duplicate name: {Name}", collection.Name);
+                    throw new InvalidOperationException(
+                        $"Collection '{collection.Name}' already exists.");
+                }
+
+                var result = await base.AddAsync(collection);
+
+                _logger.Information("Collection added: {Name} (ID: {Id})", collection.Name, collection.Id);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to add collection: {Name}", collection.Name);
+                throw;
+            }
         }
 
         private static void ValidateCollection(Collection collection)
@@ -89,24 +107,45 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task UpdateAsync(Collection collection)
         {
-            // Validation
-            ValidateCollection(collection);
+            try
+            {
+                ValidateCollection(collection);
 
-            var existingCollection = await GetByIdAsync(collection.Id) ?? throw new InvalidOperationException("Collection does not exist.");
+                var existingCollection = await _context.Collections.FindAsync(collection.Id);
 
-            // Check for duplicate name (excluding current collection)
-            var duplicateCollection = await FirstOrDefaultAsync(c =>
-                c.Id != collection.Id &&
-                c.Name.ToLower() == collection.Name.ToLower());
+                if (existingCollection == null)
+                {
+                    _logger.Warning("Update failed: Collection {Id} not found", collection.Id);
+                    throw new InvalidOperationException("Collection does not exist.");
+                }
 
-            if (duplicateCollection != null)
-                throw new InvalidOperationException(
-                    $"Collection '{collection.Name}' already exists.");
+                _logger.Debug("Updating collection: {Name} (ID: {Id})", collection.Name, collection.Id);
 
-            existingCollection.Name = collection.Name;
-            existingCollection.Description = collection.Description;
+                var duplicateCollection = await FirstOrDefaultAsync(c =>
+                    c.Id != collection.Id &&
+                    c.Name.ToLower() == collection.Name.ToLower());
 
-            await _context.SaveChangesAsync();
+                if (duplicateCollection != null)
+                {
+                    _logger.Warning("Update failed: duplicate name {Name} for collection {Id}",
+                        collection.Name, collection.Id);
+                    throw new InvalidOperationException(
+                        $"Collection '{collection.Name}' already exists.");
+                }
+
+                existingCollection.Name = collection.Name;
+                existingCollection.Description = collection.Description;
+                existingCollection.Notes = collection.Notes;
+
+                await _context.SaveChangesAsync();
+
+                _logger.Information("Collection updated: {Name} (ID: {Id})", collection.Name, collection.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to update collection ID: {Id}", collection.Id);
+                throw;
+            }
         }
 
         #endregion
@@ -115,10 +154,22 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task DeleteAsync(int id)
         {
-            var collection = await GetByIdAsync(id) ?? throw new InvalidOperationException("Collection does not exist.");
+            try
+            {
+                var collection = await GetByIdAsync(id);
+                if (collection == null)
+                {
+                    _logger.Warning("Delete failed: Collection {Id} not found", id);
+                    throw new InvalidOperationException("Collection does not exist.");
+                }
 
-            // Now delete the collection
-            await base.DeleteAsync(collection);
+                await base.DeleteAsync(collection);
+                _logger.Information("Collection deleted: {Name} (ID: {Id})", collection.Name, id);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to delete collection ID: {Id}", id);
+            }
         }
 
         #endregion

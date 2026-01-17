@@ -3,11 +3,13 @@ using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
 using MyAthenaeio.Utils;
+using Serilog;
 
 namespace MyAthenaeio.Data.Repositories
 {
     public class BookRepository(AppDbContext _context) : Repository<Book>(_context), IBookRepository
     {
+        private static readonly ILogger _logger = Log.ForContext<BookRepository>();
 
         #region Query Methods with Include Options
 
@@ -176,6 +178,8 @@ namespace MyAthenaeio.Data.Repositories
         {
             try
             {
+                _logger.Debug("Adding book: {Title}, ISBN: {ISBN}", book.Title, book.ISBN);
+
                 // Check for existing book
                 book.ISBN = ISBNValidator.CleanISBN(book.ISBN);
 
@@ -183,8 +187,12 @@ namespace MyAthenaeio.Data.Repositories
                     .FirstOrDefaultAsync(b => b.ISBN == book.ISBN);
 
                 if (existingBook != null)
+                {
+                    _logger.Warning("Attempted to add duplicate book: {Title} (ISBN: {ISBN}), existing ID: {ExistingId}",
+                        book.Title, book.ISBN, existingBook.Id);
                     throw new InvalidOperationException(
                         $"Book already exists: {existingBook.Title} (ID: {existingBook.Id})");
+                }
 
                 // Set defaults
                 if (book.DateAdded == default)
@@ -219,13 +227,12 @@ namespace MyAthenaeio.Data.Repositories
                             Bio = authorInfo.Bio
                         };
                         _context.Authors.Add(author);
-                        System.Diagnostics.Debug.WriteLine(
-                            $"Creating new author: {author.Name} (Key: {author.OpenLibraryKey})");
+                        _logger.Debug("Creating new author: {Name} (Key: {Key}", author.Name, author.OpenLibraryKey);
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine(
-                            $"Found existing author: {author.Name} (ID: {author.Id}, Key: {author.OpenLibraryKey})");
+                        _logger.Debug("Found existing author: {Name} (Id: {Id}, Key: {Key})",
+                            author.Name, author.Id, author.OpenLibraryKey);
 
                         // Update bio if we have new info and didn't have it before
                         if (string.IsNullOrEmpty(author.Bio) && !string.IsNullOrEmpty(authorInfo.Bio))
@@ -246,6 +253,8 @@ namespace MyAthenaeio.Data.Repositories
 
                     foreach (var genre in genres)
                         book.Genres.Add(genre);
+
+                    _logger.Debug("Added {Count} genres to book: {Title}", genres.Count, book.Title);
                 }
 
                 // Handle tags
@@ -257,6 +266,8 @@ namespace MyAthenaeio.Data.Repositories
 
                     foreach (var tag in tags)
                         book.Tags.Add(tag);
+
+                    _logger.Debug("Added {Count} tags to book: {Title}", tags.Count, book.Title);
                 }
 
                 // Handle collections
@@ -268,6 +279,8 @@ namespace MyAthenaeio.Data.Repositories
 
                     foreach (var collection in collections)
                         book.Collections.Add(collection);
+
+                    _logger.Debug("Added {Count} collections to book: {Title}", collections.Count, book.Title);
                 }
 
                 _context.Books.Add(book);
@@ -283,13 +296,14 @@ namespace MyAthenaeio.Data.Repositories
                 _context.BookCopies.Add(firstCopy);
                 await _context.SaveChangesAsync();
 
-                System.Diagnostics.Debug.WriteLine($"Book saved successfully with ID: {book.Id}");
+                _logger.Debug("Book added successfully: {Title} (ID: {Id}, ISBN: {ISBN})",
+                    book.Title, book.Id, book.ISBN);
+
                 return book;
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"ERROR: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"INNER: {ex.InnerException?.Message}");
+                _logger.Error(ex, "Failed to add book: {Title}, ISBN: {ISBN}", book.Title, book.ISBN);
                 throw;
             }
         }
@@ -514,16 +528,34 @@ namespace MyAthenaeio.Data.Repositories
 
         public override async Task DeleteAsync(int bookId)
         {
-            var book = await GetByIdAsync(bookId) ?? throw new InvalidOperationException("Book does not exist.");
+            try
+            {
+                var book = await GetByIdAsync(bookId);
+                if (book == null)
+                {
+                    _logger.Warning("Attempted to delete non-existent book ID: {BookId}", bookId);
+                    throw new InvalidOperationException("Book does not exist.");
+                }
 
-            // Check for active loans
-            var hasActiveLoans = await _context.Loans
-                .AnyAsync(l => l.BookId == bookId && l.ReturnDate == null);
+                var hasActiveLoans = await _context.Loans
+                    .AnyAsync(l => l.BookId == bookId && l.ReturnDate == null);
 
-            if (hasActiveLoans)
-                throw new InvalidOperationException($"Cannot delete book '{book.Title}' because it is currently on loan.");
+                if (hasActiveLoans)
+                {
+                    _logger.Warning("Cannot delete book {BookId} '{Title}' - has active loans",
+                        bookId, book.Title);
+                    throw new InvalidOperationException(
+                        $"Cannot delete book '{book.Title}' because it is currently on loan.");
+                }
 
-            await base.DeleteAsync(book);
+                await base.DeleteAsync(book);
+                _logger.Information("Book deleted: {Title} (ID: {BookId})", book.Title, bookId);
+            }
+            catch (Exception ex)
+            {
+                _logger.Error(ex, "Failed to delete book ID: {BookId}", bookId);
+                throw;
+            }
         }
 
         #endregion
