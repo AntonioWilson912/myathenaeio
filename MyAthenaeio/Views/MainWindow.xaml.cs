@@ -1,4 +1,5 @@
 ﻿using Microsoft.Win32;
+using MyAthenaeio.Data;
 using MyAthenaeio.Models.DTOs;
 using MyAthenaeio.Models.Entities;
 using MyAthenaeio.Models.ViewModels;
@@ -37,12 +38,6 @@ namespace MyAthenaeio.Views
         private int? _selectedGenreId = null;
         private int? _selectedTagId = null;
         private int? _selectedCollectionId = null;
-
-        private static string LibrarySaveFilePath => Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-            "myAthenaeio",
-            "library.db"
-        );
 
         private static string ScanSaveFilePath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
@@ -226,6 +221,12 @@ namespace MyAthenaeio.Views
         private async void RestoreFromBackup_Click(object sender, RoutedEventArgs e)
         {
             var dialog = new RestoreDialog { Owner = this };
+            dialog.ShowDialog();
+        }
+
+        private async void ResetDatabase_Click(object sender, RoutedEventArgs e)
+        {
+            var dialog = new ResetDialog { Owner = this };
             dialog.ShowDialog();
         }
 
@@ -923,7 +924,7 @@ namespace MyAthenaeio.Views
         {
             try
             {
-                if (!File.Exists(LibrarySaveFilePath))
+                if (!File.Exists(AppDbContext.DbPath))
                     return;
 
                 var books = await LibraryService.GetAllBooksAsync(BookIncludeOptions.Search);

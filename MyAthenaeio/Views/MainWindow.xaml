@@ -33,6 +33,8 @@
                 <Separator />
                 <MenuItem Click="RestoreFromBackup_Click" Header="_Restore from Backup..." />
                 <Separator />
+                <MenuItem Click="ResetDatabase_Click" Header="Reset _Database..." />
+                <Separator />
                 <MenuItem Click="Exit_Click" Header="E_xit" />
             </MenuItem>
             <MenuItem Header="_Tools">
