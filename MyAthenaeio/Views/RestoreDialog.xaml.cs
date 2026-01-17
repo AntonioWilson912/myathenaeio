@@ -1,19 +1,8 @@
 ﻿using MyAthenaeio.Services;
-using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Shapes;
 
 namespace MyAthenaeio.Views
 {
@@ -31,12 +20,12 @@ namespace MyAthenaeio.Views
 
         private void LoadAvailableBackups()
         {
-            var backupFiles = Services.BackupService.GetAvailableBackups();
+            var backupFiles = BackupService.GetAvailableBackups();
             _availableBackups = [.. backupFiles.Select(f => new BackupInfo
             {
                 FilePath = f,
                 CreatedDate = File.GetCreationTime(f),
-                FileSize = (new FileInfo(f).Length / 1024.0).ToString("F2") + " KB"
+                FileSize = FormatFileSize(new FileInfo(f).Length)
             })];
 
             BackupsListView.ItemsSource = _availableBackups;
@@ -48,7 +37,7 @@ namespace MyAthenaeio.Views
             }
         }
 
-        private string FormatFileSize(long bytes)
+        private static string FormatFileSize(long bytes)
         {
             string[] sizes = { "B", "KB", "MB", "GB" };
             double len = bytes;

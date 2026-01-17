@@ -225,6 +225,7 @@ namespace MyAthenaeio.Views.Books
                 MessageBox.Show("Book saved successfully!", "Success",
                     MessageBoxButton.OK, MessageBoxImage.Information);
 
+                DialogResult = true;
                 Close();
             }
             catch (Exception ex)

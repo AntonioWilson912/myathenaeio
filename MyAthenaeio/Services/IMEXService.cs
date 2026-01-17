@@ -521,6 +521,47 @@ namespace MyAthenaeio.Services
             return result;
         }
 
+        public static async Task ResetDatabaseAsync()
+        {
+            SqliteConnection.ClearAllPools();
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            await Task.Delay(100); // Small delay to ensure all connections are closed
+
+            // Create safety backup in case reset does not work
+            var safetyBackupPath = AppDbContext.DbPath + ".safety";
+            File.Copy(AppDbContext.DbPath, safetyBackupPath, overwrite: true);
+
+            try
+            {
+                // Delete existing database file
+                if (File.Exists(AppDbContext.DbPath))
+                {
+                    File.Delete(AppDbContext.DbPath);
+                }
+
+                // Recreate the database
+                using (var context = new AppDbContext())
+                {
+                    await context.Database.MigrateAsync();
+                }
+
+                // Success - delete safety backup
+                File.Delete(safetyBackupPath);
+
+            }
+            catch (Exception ex)
+            {
+                // Restore from safety backup
+                if (File.Exists(safetyBackupPath))
+                {
+                    File.Copy(safetyBackupPath, AppDbContext.DbPath, overwrite: true);
+                    File.Delete(safetyBackupPath);
+                }
+                throw new InvalidOperationException($"Failed to reset database: {ex.Message}");
+            }
+        }
+
         public static async Task RestoreDatabaseAsync(string backupFilePath)
         {
             if (!File.Exists(backupFilePath))
