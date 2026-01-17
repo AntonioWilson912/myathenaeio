@@ -58,11 +58,14 @@ jobs:
         # Update the source path to the publish directory
         & $aiPath /edit myAthenaeio.aip /SetSourcePath ".\publish"
         
+        # Add the publish folder to APPDIR
+        & $aiPath /edit myAthenaeio.aip /AddFolder APPDIR ".\publish"
+        
         # Add Desktop shortcut
-        & $aiPath /edit myAthenaeio.aip /NewShortcut -name "myAthenaeio" -target "APPDIR\publish\myAthenaeio.exe" -location "StartMenuFolder" -icon "APPDIR\publish\myAthenaeio.exe"
+        & $aiPath /edit myAthenaeio.aip /NewShortcut -name "myAthenaeio" -dir "DesktopFolder" -target "APPDIR\publish\myAthenaeio.exe" -icon "APPDIR\publish\myAthenaeio.exe"
         
         # Add Start Menu shortcut
-        & $aiPath /edit myAthenaeio.aip /NewShortcut -name "myAthenaeio" -target "APPDIR\publish\myAthenaeio.exe" -location "ShortcutFolder" -icon "APPDIR\publish\myAthenaeio.exe"
+        & $aiPath /edit myAthenaeio.aip /NewShortcut -name "myAthenaeio" -dir "ShortcutFolder" -target "APPDIR\publish\myAthenaeio.exe" -icon "APPDIR\publish\myAthenaeio.exe"
         
         & $aiPath /build myAthenaeio.aip
       shell: powershell
