@@ -10,6 +10,7 @@ using MyAthenaeio.Views.Books;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Reflection;
 using System.Text.Json;
 using System.Windows;
 using System.Windows.Controls;
@@ -314,10 +315,26 @@ namespace MyAthenaeio.Views
 
         private void About_Click(object sender, RoutedEventArgs e)
         {
+            Assembly assembly = Assembly.GetExecutingAssembly();
+            var version = assembly.GetName().Version;
+            string versionString = $"{version!.Major}.{version.Minor}.{version.Build}";
+
+            string copyrightText;
+            object[] attributes = assembly.GetCustomAttributes(typeof(AssemblyCopyrightAttribute), false);
+
+            if (attributes.Length > 0 && attributes[0] is AssemblyCopyrightAttribute copyright)
+            {
+                copyrightText = copyright.Copyright;
+            }
+            else
+            {
+                copyrightText = $"© {DateTime.Now.Year} myAthenaeio Contributors";
+            }
+
             MessageBox.Show(
                 "myAthenaeio - Book Scanner & Library Manager\n\n" +
-                "Version 1.0\n\n" +
-                "© 2025",
+                $"Version {versionString}\n\n" +
+                $"{copyrightText}",
                 "About",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
