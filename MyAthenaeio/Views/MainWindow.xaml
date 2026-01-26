@@ -51,6 +51,8 @@
                 <MenuItem Click="LoanHelp_Click" Header="_Loaning Guide" />
                 <MenuItem Click="TroubleshootingHelp_Click" Header="_Troubleshooting" />
                 <Separator />
+                <MenuItem Click="CheckForUpdates_Click" Header="Check for _Updates" />
+                <Separator />
                 <MenuItem Click="About_Click" Header="_About" />
             </MenuItem>
         </Menu>
