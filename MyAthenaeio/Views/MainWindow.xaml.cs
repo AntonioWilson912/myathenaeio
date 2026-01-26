@@ -7,11 +7,13 @@ using MyAthenaeio.Scanner;
 using MyAthenaeio.Services;
 using MyAthenaeio.Utils;
 using MyAthenaeio.Views.Books;
+using Serilog;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -338,6 +340,57 @@ namespace MyAthenaeio.Views
                 "About",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
+        }
+
+        private async void CheckForUpdates_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var updateInfo = await UpdateChecker.CheckForUpdatesAsync();
+
+                if (updateInfo == null)
+                {
+                    MessageBox.Show(
+                        "Could not check for updates. Please try again later.",
+                        "Update Check Failed",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (updateInfo.IsUpdateAvailable == true)
+                {
+                    var result = MessageBox.Show(
+                        "A new version is available!\n\n" +
+                        $"Current: {updateInfo.CurrentVersion}\n" +
+                        $"Latest: {updateInfo.LatestVersion}\n\n" +
+                        "Download update?",
+                        "Update Available",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Information);
+
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = updateInfo.DownloadUrl,
+                            UseShellExecute = true
+                        });
+                    }
+                }
+                else
+                {
+                    MessageBox.Show(
+                        $"You're running the latest version ({updateInfo.CurrentVersion})!",
+                        "No Updates Available",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error checking for updates");
+            }
         }
 
         #endregion
