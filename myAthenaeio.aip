@@ -15,10 +15,10 @@
     <ROW Property="ARPURLUPDATEINFO" Value="https://github.com/AntonioWilson912/myathenaeio/releases/latest"/>
     <ROW Property="CTRLS" Value="2"/>
     <ROW Property="Manufacturer" Value="Wilson&apos;s Solutions"/>
-    <ROW Property="ProductCode" Value="1033:{50419A18-F509-4C4E-9C8B-E385AF3C72AD} " Type="16"/>
+    <ROW Property="ProductCode" Value="1033:{2B1D6117-1974-4007-84F7-47C51FA36076} " Type="16"/>
     <ROW Property="ProductLanguage" Value="1033"/>
     <ROW Property="ProductName" Value="myAthenaeio"/>
-    <ROW Property="ProductVersion" Value="0.3.0" Options="4"/>
+    <ROW Property="ProductVersion" Value="0.3.1" Options="4"/>
     <ROW Property="RUNAPPLICATION" Value="1" Type="4"/>
     <ROW Property="SecureCustomProperties" Value="OLDPRODUCTS;AI_NEWERPRODUCTFOUND"/>
     <ROW Property="UpgradeCode" Value="{51E85D82-FE5D-447A-84D0-35C35107FCFC}"/>
@@ -50,37 +50,37 @@
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiCompsComponent">
     <ROW Component="APPDIR" ComponentId="{B124F39F-DDC9-4932-9428-2E167F85E678}" Directory_="APPDIR" Attributes="0"/>
-    <ROW Component="H.GeneratedIcons.System.Drawing.dll" ComponentId="{E97DC403-7631-4C7D-924D-12A7F9EFCA5A}" Directory_="publish_Dir" Attributes="0" KeyPath="H.GeneratedIcons.System.Drawing.dll"/>
-    <ROW Component="H.NotifyIcon.Wpf.dll" ComponentId="{AEA8C6A0-5D19-4A9B-9FBA-5DFB38E902F8}" Directory_="publish_Dir" Attributes="0" KeyPath="H.NotifyIcon.Wpf.dll"/>
-    <ROW Component="H.NotifyIcon.dll" ComponentId="{3F1CC340-329A-45CC-BB44-0C4F726DB725}" Directory_="publish_Dir" Attributes="0" KeyPath="H.NotifyIcon.dll"/>
-    <ROW Component="Microsoft.Data.Sqlite.dll" ComponentId="{20D00A0F-6E23-43CB-B9AB-1C6CC06C7F37}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Data.Sqlite.dll"/>
-    <ROW Component="Microsoft.EntityFrameworkCore.Abstractions.dll" ComponentId="{E0EA9836-E25D-4A72-A271-0C32838B152F}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.EntityFrameworkCore.Abstractions.dll"/>
-    <ROW Component="Microsoft.EntityFrameworkCore.Relational.dll" ComponentId="{C4A3A886-A571-4EBE-9D5A-1ADA0F2D811F}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.EntityFrameworkCore.Relational.dll"/>
-    <ROW Component="Microsoft.EntityFrameworkCore.Sqlite.dll" ComponentId="{76551C10-CC95-4404-9559-FED05B667779}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.EntityFrameworkCore.Sqlite.dll"/>
-    <ROW Component="Microsoft.EntityFrameworkCore.dll" ComponentId="{D6E37DDA-345C-4241-B05D-4560BF505C47}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.EntityFrameworkCore.dll"/>
-    <ROW Component="Microsoft.Extensions.Caching.Abstractions.dll" ComponentId="{DC900B3F-F71D-4DDE-97DB-0A75A8495373}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Caching.Abstractions.dll"/>
-    <ROW Component="Microsoft.Extensions.Caching.Memory.dll" ComponentId="{50DF5A53-9A2E-4E77-9CFF-4003C65F5EA4}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Caching.Memory.dll"/>
-    <ROW Component="Microsoft.Extensions.Configuration.Abstractions.dll" ComponentId="{0C771928-39F0-430A-848B-DA9CFB7C393B}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Configuration.Abstractions.dll"/>
-    <ROW Component="Microsoft.Extensions.DependencyInj_2_ection.dll" ComponentId="{85888C97-0986-4673-961E-D494E8B07855}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.DependencyInjection.dll"/>
-    <ROW Component="Microsoft.Extensions.DependencyInjection.Abstractions.dll" ComponentId="{4F8624C1-D04A-45D1-9B75-CB1B10B3CD53}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.DependencyInjection.Abstractions.dll"/>
-    <ROW Component="Microsoft.Extensions.DependencyModel.dll" ComponentId="{DFF221EB-FF1D-498A-A696-0DB631F0E570}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.DependencyModel.dll"/>
-    <ROW Component="Microsoft.Extensions.Logging.Abstractions.dll" ComponentId="{B7CAE6CD-D8A7-49DC-AA2D-C8FF1EF972B6}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Logging.Abstractions.dll"/>
-    <ROW Component="Microsoft.Extensions.Logging.dll" ComponentId="{3667FA33-4D43-46BE-8420-E399BE966600}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Logging.dll"/>
-    <ROW Component="Microsoft.Extensions.Options.dll" ComponentId="{AC4794E3-CAFB-42C4-8668-CB473AAE6B81}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Options.dll"/>
-    <ROW Component="Microsoft.Extensions.Primitives.dll" ComponentId="{BF09B6C3-6E67-42C2-B132-E63CB621FF29}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Primitives.dll"/>
-    <ROW Component="Newtonsoft.Json.dll" ComponentId="{A5467322-182E-43DA-924A-8D58E5F565C1}" Directory_="publish_Dir" Attributes="0" KeyPath="Newtonsoft.Json.dll"/>
+    <ROW Component="H.GeneratedIcons.System.Drawing.dll" ComponentId="{E79E2B27-3CDE-4936-9396-3395C68E9819}" Directory_="publish_Dir" Attributes="0" KeyPath="H.GeneratedIcons.System.Drawing.dll"/>
+    <ROW Component="H.NotifyIcon.Wpf.dll" ComponentId="{1E259862-25AA-4305-81EF-674F0E1BDE53}" Directory_="publish_Dir" Attributes="0" KeyPath="H.NotifyIcon.Wpf.dll"/>
+    <ROW Component="H.NotifyIcon.dll" ComponentId="{ED79AC38-5FFB-4A68-973F-33A64EA7761E}" Directory_="publish_Dir" Attributes="0" KeyPath="H.NotifyIcon.dll"/>
+    <ROW Component="Microsoft.Data.Sqlite.dll" ComponentId="{D5041E2B-834F-498A-B27E-F6B9316CD195}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Data.Sqlite.dll"/>
+    <ROW Component="Microsoft.EntityFrameworkCore.Abstractions.dll" ComponentId="{EF55A7BB-219F-4C65-8656-E2A32F5397B4}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.EntityFrameworkCore.Abstractions.dll"/>
+    <ROW Component="Microsoft.EntityFrameworkCore.Relational.dll" ComponentId="{1CABF834-179C-474A-85A2-A0F21CB46BC2}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.EntityFrameworkCore.Relational.dll"/>
+    <ROW Component="Microsoft.EntityFrameworkCore.Sqlite.dll" ComponentId="{6C113AA5-36BC-46B5-A70E-00BC546E357A}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.EntityFrameworkCore.Sqlite.dll"/>
+    <ROW Component="Microsoft.EntityFrameworkCore.dll" ComponentId="{54A93516-6DE5-4F53-B190-8A5621A9B3D4}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.EntityFrameworkCore.dll"/>
+    <ROW Component="Microsoft.Extensions.Caching.Abstractions.dll" ComponentId="{D5446688-4094-47DD-9607-24152B33DADF}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Caching.Abstractions.dll"/>
+    <ROW Component="Microsoft.Extensions.Caching.Memory.dll" ComponentId="{4FB19352-1C7E-49F1-B8D7-FAA77A3D933A}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Caching.Memory.dll"/>
+    <ROW Component="Microsoft.Extensions.Configuration.Abstractions.dll" ComponentId="{ACEB0127-80A5-4232-8DF6-010B1A396F54}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Configuration.Abstractions.dll"/>
+    <ROW Component="Microsoft.Extensions.DependencyInj_3_ection.dll" ComponentId="{EDF95BFD-ABD5-4568-8C06-86A118FAA1B0}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.DependencyInjection.dll"/>
+    <ROW Component="Microsoft.Extensions.DependencyInjection.Abstractions.dll" ComponentId="{174E2D7F-DC09-4E95-A8CC-0AC5D9F61600}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.DependencyInjection.Abstractions.dll"/>
+    <ROW Component="Microsoft.Extensions.DependencyModel.dll" ComponentId="{94E90FAB-C616-45DE-81A1-6E145135F86C}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.DependencyModel.dll"/>
+    <ROW Component="Microsoft.Extensions.Logging.Abstractions.dll" ComponentId="{D39D774D-3B00-4515-AEC2-3E1E99A43BAD}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Logging.Abstractions.dll"/>
+    <ROW Component="Microsoft.Extensions.Logging.dll" ComponentId="{D77C0E71-DB19-4167-86E6-00EF048689E1}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Logging.dll"/>
+    <ROW Component="Microsoft.Extensions.Options.dll" ComponentId="{D002E2B6-75D3-4045-9A92-5F487A71C928}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Options.dll"/>
+    <ROW Component="Microsoft.Extensions.Primitives.dll" ComponentId="{26E8BACC-B129-4C4E-987B-7BD45322CF9B}" Directory_="publish_Dir" Attributes="0" KeyPath="Microsoft.Extensions.Primitives.dll"/>
+    <ROW Component="Newtonsoft.Json.dll" ComponentId="{46B2F3CE-0BDB-4BDE-A066-A48654A016DA}" Directory_="publish_Dir" Attributes="0" KeyPath="Newtonsoft.Json.dll"/>
     <ROW Component="ProductInformation" ComponentId="{91E36FBD-58A1-4040-AC71-067FCB063237}" Directory_="APPDIR" Attributes="260" KeyPath="Version"/>
-    <ROW Component="SHORTCUTDIR" ComponentId="{BCBE1149-B9F3-4F8B-85C5-A9E3872FC223}" Directory_="SHORTCUTDIR" Attributes="0"/>
-    <ROW Component="SQLitePCLRaw.batteries_v2.dll" ComponentId="{C7C92707-62CE-4579-8B41-F62E3FF4515A}" Directory_="publish_Dir" Attributes="0" KeyPath="SQLitePCLRaw.batteries_v2.dll"/>
-    <ROW Component="SQLitePCLRaw.core.dll" ComponentId="{38ABD440-043D-405F-8FF0-C10F91FC9981}" Directory_="publish_Dir" Attributes="0" KeyPath="SQLitePCLRaw.core.dll"/>
-    <ROW Component="SQLitePCLRaw.provider.e_sqlite3.dll" ComponentId="{371D628D-A793-4A8B-916E-17AAC1B7B9D3}" Directory_="publish_Dir" Attributes="0" KeyPath="SQLitePCLRaw.provider.e_sqlite3.dll"/>
-    <ROW Component="Serilog.Extensions.Logging.dll" ComponentId="{BC0C668A-40DB-4597-B683-792F2C4DD601}" Directory_="publish_Dir" Attributes="0" KeyPath="Serilog.Extensions.Logging.dll"/>
-    <ROW Component="Serilog.Sinks.File.dll" ComponentId="{F126514D-D12E-4818-A27D-D85F1D754383}" Directory_="publish_Dir" Attributes="0" KeyPath="Serilog.Sinks.File.dll"/>
-    <ROW Component="Serilog.dll" ComponentId="{AD011153-619C-43E9-9F7B-D84775508ACC}" Directory_="publish_Dir" Attributes="0" KeyPath="Serilog.dll"/>
-    <ROW Component="e_sqlite3.dll" ComponentId="{AE6D644D-70D9-4C51-B80D-7489DF131002}" Directory_="publish_Dir" Attributes="256" KeyPath="e_sqlite3.dll"/>
-    <ROW Component="myAthenaeio.deps.json" ComponentId="{E71EA198-FB5D-497E-8E4C-AA6534F8DABF}" Directory_="publish_Dir" Attributes="0" KeyPath="myAthenaeio.deps.json" Type="0"/>
-    <ROW Component="myAthenaeio.dll" ComponentId="{9DF3FD8E-6BA7-4180-AB16-2FBDCA49ECD8}" Directory_="publish_Dir" Attributes="256" KeyPath="myAthenaeio.dll"/>
-    <ROW Component="myAthenaeio.exe" ComponentId="{25E488AA-634C-448D-B67E-5F4BD834D7A7}" Directory_="publish_Dir" Attributes="256" KeyPath="myAthenaeio.exe"/>
+    <ROW Component="SHORTCUTDIR" ComponentId="{011F6FE2-0F47-4C0A-A500-3938302E7C06}" Directory_="SHORTCUTDIR" Attributes="0"/>
+    <ROW Component="SQLitePCLRaw.batteries_v2.dll" ComponentId="{365D8338-D154-45DD-B4CF-35AD14E9B417}" Directory_="publish_Dir" Attributes="0" KeyPath="SQLitePCLRaw.batteries_v2.dll"/>
+    <ROW Component="SQLitePCLRaw.core.dll" ComponentId="{7273CD77-19B7-4D12-82A0-BD81A7D8B604}" Directory_="publish_Dir" Attributes="0" KeyPath="SQLitePCLRaw.core.dll"/>
+    <ROW Component="SQLitePCLRaw.provider.e_sqlite3.dll" ComponentId="{6C605E7C-A572-4CB4-AD5F-2F2D5EAAAEEE}" Directory_="publish_Dir" Attributes="0" KeyPath="SQLitePCLRaw.provider.e_sqlite3.dll"/>
+    <ROW Component="Serilog.Extensions.Logging.dll" ComponentId="{B3146B16-5052-4BCC-A06A-4EDE5E425659}" Directory_="publish_Dir" Attributes="0" KeyPath="Serilog.Extensions.Logging.dll"/>
+    <ROW Component="Serilog.Sinks.File.dll" ComponentId="{08706081-1DEB-456B-BDDA-F3684F7492FF}" Directory_="publish_Dir" Attributes="0" KeyPath="Serilog.Sinks.File.dll"/>
+    <ROW Component="Serilog.dll" ComponentId="{C5C865C6-2F1C-43E8-B238-B96FA780C4E2}" Directory_="publish_Dir" Attributes="0" KeyPath="Serilog.dll"/>
+    <ROW Component="e_sqlite3.dll" ComponentId="{11FD69D2-A40C-421F-AEFA-C4EABAECFD5F}" Directory_="publish_Dir" Attributes="256" KeyPath="e_sqlite3.dll"/>
+    <ROW Component="myAthenaeio.deps.json" ComponentId="{B0DC7BD1-F9AD-4022-9997-E9A8D8EAF248}" Directory_="publish_Dir" Attributes="0" KeyPath="myAthenaeio.deps.json" Type="0"/>
+    <ROW Component="myAthenaeio.dll" ComponentId="{21D5FE59-0935-4602-9C1A-0EF169919780}" Directory_="publish_Dir" Attributes="256" KeyPath="myAthenaeio.dll"/>
+    <ROW Component="myAthenaeio.exe" ComponentId="{F27A267E-0172-4256-90BA-8E5943536190}" Directory_="publish_Dir" Attributes="256" KeyPath="myAthenaeio.exe"/>
   </COMPONENT>
   <COMPONENT cid="caphyon.advinst.msicomp.MsiFeatsComponent">
     <ROW Feature="MainFeature" Title="MainFeature" Description="Description" Display="1" Level="1" Directory_="APPDIR" Attributes="0"/>
@@ -100,7 +100,7 @@
     <ROW File="Microsoft.Extensions.Caching.Memory.dll" Component_="Microsoft.Extensions.Caching.Memory.dll" FileName="MICROS~7.DLL|Microsoft.Extensions.Caching.Memory.dll" Version="65535.65535.65535.65535" Attributes="0" SourcePath="publish\Microsoft.Extensions.Caching.Memory.dll" SelfReg="false"/>
     <ROW File="Microsoft.Extensions.Configuration.Abstractions.dll" Component_="Microsoft.Extensions.Configuration.Abstractions.dll" FileName="MICROS~8.DLL|Microsoft.Extensions.Configuration.Abstractions.dll" Version="65535.65535.65535.65535" Attributes="0" SourcePath="publish\Microsoft.Extensions.Configuration.Abstractions.dll" SelfReg="false"/>
     <ROW File="Microsoft.Extensions.DependencyInjection.Abstractions.dll" Component_="Microsoft.Extensions.DependencyInjection.Abstractions.dll" FileName="MICROS~9.DLL|Microsoft.Extensions.DependencyInjection.Abstractions.dll" Version="65535.65535.65535.65535" Attributes="0" SourcePath="publish\Microsoft.Extensions.DependencyInjection.Abstractions.dll" SelfReg="false"/>
-    <ROW File="Microsoft.Extensions.DependencyInjection.dll" Component_="Microsoft.Extensions.DependencyInj_2_ection.dll" FileName="MICRO~10.DLL|Microsoft.Extensions.DependencyInjection.dll" Version="65535.65535.65535.65535" Attributes="0" SourcePath="publish\Microsoft.Extensions.DependencyInjection.dll" SelfReg="false"/>
+    <ROW File="Microsoft.Extensions.DependencyInjection.dll" Component_="Microsoft.Extensions.DependencyInj_3_ection.dll" FileName="MICRO~10.DLL|Microsoft.Extensions.DependencyInjection.dll" Version="65535.65535.65535.65535" Attributes="0" SourcePath="publish\Microsoft.Extensions.DependencyInjection.dll" SelfReg="false"/>
     <ROW File="Microsoft.Extensions.DependencyModel.dll" Component_="Microsoft.Extensions.DependencyModel.dll" FileName="MICRO~11.DLL|Microsoft.Extensions.DependencyModel.dll" Version="65535.65535.65535.65535" Attributes="0" SourcePath="publish\Microsoft.Extensions.DependencyModel.dll" SelfReg="false"/>
     <ROW File="Microsoft.Extensions.Logging.Abstractions.dll" Component_="Microsoft.Extensions.Logging.Abstractions.dll" FileName="MICRO~12.DLL|Microsoft.Extensions.Logging.Abstractions.dll" Version="65535.65535.65535.65535" Attributes="0" SourcePath="publish\Microsoft.Extensions.Logging.Abstractions.dll" SelfReg="false"/>
     <ROW File="Microsoft.Extensions.Logging.dll" Component_="Microsoft.Extensions.Logging.dll" FileName="MICRO~13.DLL|Microsoft.Extensions.Logging.dll" Version="65535.65535.65535.65535" Attributes="0" SourcePath="publish\Microsoft.Extensions.Logging.dll" SelfReg="false"/>
@@ -209,7 +209,7 @@
     <ROW Feature_="MainFeature" Component_="Microsoft.Extensions.Caching.Memory.dll"/>
     <ROW Feature_="MainFeature" Component_="Microsoft.Extensions.Configuration.Abstractions.dll"/>
     <ROW Feature_="MainFeature" Component_="Microsoft.Extensions.DependencyInjection.Abstractions.dll"/>
-    <ROW Feature_="MainFeature" Component_="Microsoft.Extensions.DependencyInj_2_ection.dll"/>
+    <ROW Feature_="MainFeature" Component_="Microsoft.Extensions.DependencyInj_3_ection.dll"/>
     <ROW Feature_="MainFeature" Component_="Microsoft.Extensions.DependencyModel.dll"/>
     <ROW Feature_="MainFeature" Component_="Microsoft.Extensions.Logging.Abstractions.dll"/>
     <ROW Feature_="MainFeature" Component_="Microsoft.Extensions.Logging.dll"/>

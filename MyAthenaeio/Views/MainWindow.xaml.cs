@@ -13,7 +13,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Text.Json;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -179,7 +178,7 @@ namespace MyAthenaeio.Views
 
                         if (importResult.Success)
                         {
-                            MessageBox.Show($"Import complete!\n\n" + 
+                            MessageBox.Show($"Import complete!\n\n" +
                                             $"Books Added: {importResult.BooksImported}\n" +
                                             $"Authors Added: {importResult.AuthorsImported}\n" +
                                             $"Genres Added: {importResult.GenresImported}\n" +
@@ -969,16 +968,16 @@ namespace MyAthenaeio.Views
                 {
                     ScanCount = _scanCount,
                     ScanLog = [.. _scanLog.Select(entry => new ScanLogEntry
-            {
-                Timestamp = entry.Timestamp,
-                Barcode = entry.Barcode,
-                Title = entry.Title,
-                Source = entry.Source,
-                WasSuccessful = entry.WasSuccessful,
-                ErrorMessage = entry.ErrorMessage,
-                IsInLibrary = entry.IsInLibrary,
-                BookId = entry.BookId
-            })]
+                    {
+                        Timestamp = entry.Timestamp,
+                        Barcode = entry.Barcode,
+                        Title = entry.Title,
+                        Source = entry.Source,
+                        WasSuccessful = entry.WasSuccessful,
+                        ErrorMessage = entry.ErrorMessage,
+                        IsInLibrary = entry.IsInLibrary,
+                        BookId = entry.BookId
+                    })]
                 };
 
                 string json = JsonSerializer.Serialize(dataToSave, SerializerOptions);
@@ -1018,6 +1017,7 @@ namespace MyAthenaeio.Views
         {
             try
             {
+                // When loading scan data, only consider the scans from today or even the last scan date (new field)
                 if (!File.Exists(ScanSaveFilePath))
                     return;
 
@@ -1027,10 +1027,8 @@ namespace MyAthenaeio.Views
                 if (loadedData == null)
                     return;
 
-                _scanCount = loadedData.ScanCount;
-
                 _scanLog.Clear();
-                foreach (var entry in loadedData.ScanLog)
+                foreach (var entry in loadedData.ScanLog.Where(scanEntry => scanEntry.Timestamp.Date == DateTime.Today.Date))
                 {
                     _scanLog.Add(new ScanLogEntry
                     {
@@ -1047,6 +1045,8 @@ namespace MyAthenaeio.Views
                     });
                 }
 
+                _scanCount = _scanLog.Count;
+
                 // Update UI
                 ScanCountText.Text = _scanCount.ToString();
                 _trayIconManager.UpdateTodayCount(_scanCount);
@@ -1061,7 +1061,7 @@ namespace MyAthenaeio.Views
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Failed to load scan data: {ex.Message}");
+                Debug.WriteLine($"Failed to load scan data: {ex.Message}");
             }
         }
 
